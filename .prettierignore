@@ -1,0 +1,14 @@
+node_modules
+dist
+.next
+out
+build
+coverage
+playwright-report
+test-results
+pnpm-lock.yaml
+apps/web/next-env.d.ts
+
+# Vendored / source-of-truth content — do not reformat
+DESIGN.md
+.claude/skills
