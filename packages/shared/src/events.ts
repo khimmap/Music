@@ -10,12 +10,22 @@ export const SocketEvents = {
   Connection: 'connection',
   Disconnect: 'disconnect',
 
-  /** Room lifecycle (not implemented yet). */
+  /** Room membership. */
+  Join: 'join',
+  Leave: 'leave',
   RoomJoin: 'room:join',
   RoomLeave: 'room:leave',
   RoomState: 'room:state',
 
-  /** Queue & playback sync (not implemented yet). */
+  /** Seating (server-authoritative). */
+  SeatAssign: 'seat:assign',
+
+  /** Social interactions. */
+  Chat: 'chat',
+  Throw: 'throw',
+  Emote: 'emote',
+
+  /** Queue & playback sync. */
   QueueAdd: 'queue:add',
   QueueUpdate: 'queue:update',
   PlaybackSync: 'playback:sync',

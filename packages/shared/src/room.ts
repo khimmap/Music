@@ -14,6 +14,9 @@ export interface Member {
   joinedAt: number;
 }
 
+/** Maximum number of members allowed in a single room. */
+export const MAX_ROOM_USERS = 12;
+
 /** A shared listening room — the "radio station" a group listens to together. */
 export interface Room {
   /** Unique room id used for joining and routing socket events. */

@@ -5,3 +5,6 @@
 export * from './events';
 export * from './room';
 export * from './queue';
+export * from './avatar';
+export * from './seat';
+export * from './interaction';

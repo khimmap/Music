@@ -61,3 +61,31 @@ corepack pnpm test:e2e       # Playwright smoke tests (auto-starts both apps)
 - **UI components go in `apps/web/src/components`; socket logic goes in
   `apps/web/src/hooks`.** Keep components presentational and hooks stateful.
 - **Every new feature ships with at least one Playwright test** in `e2e/`.
+
+## 3D rules
+
+Ember's room is a 3D social space (three + @react-three/fiber + drei). Scene
+code lives in `apps/web/src/scene`, characters in `apps/web/src/characters`,
+interactions in `apps/web/src/interactions`, client state in
+`apps/web/src/stores`. 3D contracts (avatar, seat, interaction) live in
+`packages/shared`.
+
+- **Style:** low-poly / chibi. **CC0 assets only** — every asset is logged in
+  `apps/web/public/assets/LICENSES.md` with its source and license before use.
+- **YouTube is a DOM `<iframe>`** aligned to the 3D screen anchor. Never use
+  video textures.
+- **2D overlay UI** (chat input, queue, settings) stays as regular DOM on top of
+  the canvas — do not rebuild it in 3D.
+- **Interactions require a server-side cooldown** (see `INTERACTION_COOLDOWNS` in
+  `packages/shared/src/interaction.ts`); users can opt out of being targeted.
+- **Performance:** target 60fps on desktop; provide a **"lite mode"** for
+  low-end / mobile devices.
+- **Max 12 users per room** (`MAX_ROOM_USERS` in `packages/shared/src/room.ts`).
+- The Canvas is **client-only** — always load it with `next/dynamic` and
+  `ssr: false`.
+- **Build order (one step at a time, never all at once):**
+  1. Static 3D room + synced YouTube
+  2. Avatars seated + chat bubbles
+  3. Door entrance animation
+  4. Character creator
+  5. Throw / emotes

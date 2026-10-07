@@ -19,6 +19,10 @@ export default defineConfig({
   use: {
     baseURL: WEB_URL,
     trace: 'on-first-retry',
+    // Allow software WebGL (SwiftShader) so the 3D canvas renders headlessly.
+    launchOptions: {
+      args: ['--enable-unsafe-swiftshader'],
+    },
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
