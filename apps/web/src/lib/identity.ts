@@ -7,7 +7,10 @@ export interface Identity {
 
 const NAMES = ['Minh', 'Rin', 'Avery', 'Noa', 'Kai', 'Suki', 'Theo', 'Juno', 'Remy', 'Lux'];
 const COLORS = ['#f4915b', '#a7e5d3', '#c8b8e0', '#a8c8e8', '#e8b8c4', '#ffd27a'];
-const EMOJIS = ['🔥', '🎧', '🌙', '✨', '🎵', '🫧', '🌊', '🍃', '⭐', '🪩'];
+// Kept to glyphs with broad OS emoji-font coverage. Newer additions like 🫧 /
+// 🪩 (Unicode 14) render as a "tofu" box on older fonts (e.g. Windows Server),
+// so they are intentionally excluded.
+const EMOJIS = ['🔥', '🎧', '🌙', '✨', '🎵', '🎶', '🌊', '🍃', '⭐', '☕'];
 
 function pick<T>(list: T[]): T {
   return list[Math.floor(Math.random() * list.length)] ?? list[0]!;
@@ -33,10 +36,13 @@ export function getIdentity(): Identity {
   if (raw) {
     try {
       const parsed = JSON.parse(raw) as Partial<Identity>;
+      const cachedEmoji = str(parsed.emoji);
       identity = {
         name: str(parsed.name) ?? identity.name,
         color: str(parsed.color) ?? identity.color,
-        emoji: str(parsed.emoji) ?? identity.emoji,
+        // Replace a missing OR unsupported (removed-from-pool) emoji so an old
+        // cached identity never keeps rendering as a tofu box.
+        emoji: cachedEmoji && EMOJIS.includes(cachedEmoji) ? cachedEmoji : identity.emoji,
       };
     } catch {
       /* corrupt value — keep the fresh identity */

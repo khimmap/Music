@@ -227,6 +227,15 @@
   opacity: 0.38;
 }
 
+/* Rising ember specks on the landing (hidden unless motion is allowed). */
+.ember-spark-float {
+  position: absolute;
+  bottom: -14px;
+  border-radius: 9999px;
+  background: var(--color-ember);
+  opacity: 0;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   @keyframes emberDriftA {
     0%,
@@ -280,6 +289,42 @@
   }
   .ember-rise {
     animation: emberRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes emberFloat {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, 0, 0) scale(0.8);
+    }
+    12% {
+      opacity: 0.85;
+    }
+    80% {
+      opacity: 0.45;
+    }
+    100% {
+      opacity: 0;
+      transform: translate3d(var(--drift, 10px), -72vh, 0) scale(1.05);
+    }
+  }
+  .ember-spark-float {
+    animation: emberFloat var(--dur, 10s) ease-in infinite;
+    animation-delay: var(--delay, 0s);
+  }
+
+  @keyframes emberGlowPulse {
+    0%,
+    100% {
+      transform: translate(-50%, -58%) scale(1);
+      opacity: 0.9;
+    }
+    50% {
+      transform: translate(-50%, -58%) scale(1.07);
+      opacity: 1;
+    }
+  }
+  .ember-glow {
+    animation: emberGlowPulse 7s ease-in-out infinite;
   }
 }
 
