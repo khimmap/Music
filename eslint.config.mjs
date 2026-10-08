@@ -18,6 +18,9 @@ export default tseslint.config(
       '**/test-results/**',
       '.claude/**',
       'apps/web/next-env.d.ts',
+      // Local dev tooling (headed screenshot runner): Node + Playwright, mixes
+      // Node and in-page browser globals; not part of the app lint surface.
+      'scripts/**',
     ],
   },
   js.configs.recommended,

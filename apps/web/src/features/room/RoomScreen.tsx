@@ -188,7 +188,7 @@ function RoomView() {
         </div>
       </header>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-content flex-col items-center gap-lg px-base pb-[240px] pt-sm lg:pr-[380px]">
+      <div className="relative z-10 mx-auto flex w-full max-w-content flex-col items-center gap-lg px-base pb-[150px] pt-sm lg:pr-[380px]">
         <NowPlaying />
         <div data-cinema-hide className="flex w-full flex-col items-center gap-lg">
           <ProgressWave />
@@ -197,7 +197,7 @@ function RoomView() {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-end justify-between gap-base p-base">
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex items-end justify-between gap-base p-base">
         <ListenersRow />
         <div data-cinema-hide className="flex items-center gap-sm">
           <ReactionBar />

@@ -30,3 +30,6 @@ pnpm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
+
+# Headed screenshot run outputs (generated)
+scripts/shots/

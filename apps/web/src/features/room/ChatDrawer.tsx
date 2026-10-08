@@ -52,6 +52,7 @@ export function ChatDrawer({ open, setOpen }: { open: boolean; setOpen: (open: b
       <button
         type="button"
         data-testid="chat-toggle"
+        data-cinema-hide
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         className="pointer-events-auto fixed bottom-[88px] left-1/2 z-30 -translate-x-1/2 rounded-pill border border-white/15 bg-white/[0.04] px-base py-xs font-sans text-button text-on-dark transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
