@@ -190,6 +190,99 @@
   }
 }
 
+/* Home atmospheric gradient orbs — the brand's only color moment (DESIGN.md).
+ * Positioned/blurred statically; they only drift under no-reduced-motion. */
+.ember-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(72px);
+  will-change: transform;
+}
+.ember-orb-1 {
+  top: -14%;
+  left: -8%;
+  height: min(46vw, 680px);
+  width: min(46vw, 680px);
+  opacity: 0.55;
+}
+.ember-orb-2 {
+  right: -12%;
+  bottom: -18%;
+  height: min(48vw, 720px);
+  width: min(48vw, 720px);
+  opacity: 0.5;
+}
+.ember-orb-3 {
+  top: 6%;
+  right: -4%;
+  height: min(32vw, 460px);
+  width: min(32vw, 460px);
+  opacity: 0.42;
+}
+.ember-orb-4 {
+  bottom: -6%;
+  left: 8%;
+  height: min(28vw, 400px);
+  width: min(28vw, 400px);
+  opacity: 0.38;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes emberDriftA {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(4%, 6%, 0) scale(1.08);
+    }
+  }
+  @keyframes emberDriftB {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(-5%, -4%, 0) scale(1.1);
+    }
+  }
+  @keyframes emberDriftC {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(-3%, 5%, 0) scale(1.06);
+    }
+  }
+  .ember-orb-1 {
+    animation: emberDriftA 26s ease-in-out infinite;
+  }
+  .ember-orb-2 {
+    animation: emberDriftB 32s ease-in-out infinite;
+  }
+  .ember-orb-3 {
+    animation: emberDriftC 24s ease-in-out infinite;
+  }
+  .ember-orb-4 {
+    animation: emberDriftA 30s ease-in-out infinite reverse;
+  }
+
+  @keyframes emberRise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .ember-rise {
+    animation: emberRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
 /* Cinema mode: fade non-essential chrome (transform/opacity only). */
 [data-cinema-hide] {
   transition: opacity 0.6s ease;

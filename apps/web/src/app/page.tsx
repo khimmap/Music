@@ -28,19 +28,51 @@ export default function HomePage() {
   }
 
   return (
-    <main className="flex min-h-[100dvh] flex-col items-center justify-center bg-canvas px-base text-ink">
-      <div className="w-full max-w-[52ch] text-center">
-        <h1 className="font-display text-display-mega leading-none text-ink">Ember</h1>
-        <p className="mx-auto mt-md font-sans text-body-md text-body">
+    <main className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-base text-ink">
+      {/* Atmospheric pastel gradient orbs drifting behind the content — the
+          brand's only color moment (DESIGN.md). Decorative, reduced-motion safe. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+        <span
+          className="ember-orb ember-orb-1"
+          style={{ background: 'radial-gradient(circle, var(--color-gradient-mint), transparent 70%)' }}
+        />
+        <span
+          className="ember-orb ember-orb-2"
+          style={{ background: 'radial-gradient(circle, var(--color-gradient-peach), transparent 70%)' }}
+        />
+        <span
+          className="ember-orb ember-orb-3"
+          style={{ background: 'radial-gradient(circle, var(--color-gradient-lavender), transparent 70%)' }}
+        />
+        <span
+          className="ember-orb ember-orb-4"
+          style={{ background: 'radial-gradient(circle, var(--color-gradient-sky), transparent 70%)' }}
+        />
+      </div>
+
+      <div className="relative z-10 w-full max-w-[52ch] text-center">
+        <span
+          aria-hidden="true"
+          className="ember-breathe mx-auto mb-lg block h-2 w-2 rounded-full bg-ember"
+          style={{ boxShadow: '0 0 28px 8px rgba(244,145,91,0.45)' }}
+        />
+        <h1 className="ember-rise font-display text-display-mega leading-none text-ink">Ember</h1>
+        <p
+          className="ember-rise mx-auto mt-md font-sans text-body-md text-body"
+          style={{ animationDelay: '90ms' }}
+        >
           Start a room, share the link, and watch YouTube together in real time.
         </p>
-        <div className="mt-xl flex flex-col items-center gap-sm">
+        <div
+          className="ember-rise mt-xl flex flex-col items-center gap-sm"
+          style={{ animationDelay: '180ms' }}
+        >
           <button
             type="button"
             onClick={createRoom}
             disabled={creating}
             data-testid="create-room"
-            className="rounded-pill bg-primary px-lg py-sm font-sans text-button text-on-primary transition hover:bg-primary-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 active:translate-y-px disabled:opacity-60"
+            className="rounded-pill bg-primary px-lg py-sm font-sans text-button text-on-primary shadow-soft transition hover:bg-primary-active hover:shadow-[0_8px_30px_rgba(12,10,9,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 active:translate-y-px disabled:opacity-60"
           >
             {creating ? 'Creating room…' : 'Create a room'}
           </button>
