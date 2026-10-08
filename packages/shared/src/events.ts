@@ -1,18 +1,17 @@
 /**
  * Socket.io event names shared by the Ember web client and server.
  *
- * This is the single source of truth for event names — both sides import from
- * here so a typo can never desynchronise the client and server. Skeleton only;
- * payload types are added alongside each feature.
+ * Single source of truth: both sides import these so a typo can never
+ * desynchronise client and server. One naming convention only —
+ * `namespace:action` (the Socket.io built-in `connection`/`disconnect`
+ * lifecycle events are the sole exception, since their names are fixed).
  */
 export const SocketEvents = {
-  /** Built-in Socket.io connection lifecycle events. */
+  /** Socket.io built-in lifecycle (names fixed by the library). */
   Connection: 'connection',
   Disconnect: 'disconnect',
 
   /** Room membership. */
-  Join: 'join',
-  Leave: 'leave',
   RoomJoin: 'room:join',
   RoomLeave: 'room:leave',
   RoomState: 'room:state',
@@ -20,15 +19,26 @@ export const SocketEvents = {
   /** Seating (server-authoritative). */
   SeatAssign: 'seat:assign',
 
-  /** Social interactions. */
-  Chat: 'chat',
-  Throw: 'throw',
-  Emote: 'emote',
+  /** Chat. */
+  ChatSend: 'chat:send',
 
-  /** Queue & playback sync. */
+  /** Playful interactions. */
+  InteractionThrow: 'interaction:throw',
+  InteractionEmote: 'interaction:emote',
+
+  /** Queue. */
   QueueAdd: 'queue:add',
-  QueueUpdate: 'queue:update',
+
+  /** Playback control (client → server) and sync (server → clients). */
+  PlaybackPlay: 'playback:play',
+  PlaybackPause: 'playback:pause',
+  PlaybackSeek: 'playback:seek',
+  PlaybackNext: 'playback:next',
+  PlaybackEnded: 'playback:ended',
   PlaybackSync: 'playback:sync',
+
+  /** Clock-offset estimation (used with a Socket.io ack callback). */
+  TimeSync: 'time:sync',
 } as const;
 
 /** Union of every Socket.io event name declared above. */

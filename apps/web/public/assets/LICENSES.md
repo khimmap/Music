@@ -6,17 +6,24 @@ assets only** (see the 3D rules in `CLAUDE.md`).
 
 ## Status
 
-**No assets have been downloaded yet.** The section below is a researched
-candidate list only. When an asset is added, move it into a "Shipped assets"
-table with: file path, pack name, author, exact source URL, license, and the
-license URL.
+Room furniture (Step 1) uses **Kenney — Furniture Kit (2.0)**, confirmed CC0.
+Walls, floor, and the campfire are procedural geometry (no asset). Character
+assets (Quaternius/KayKit candidates below) are not downloaded yet.
 
 ### Shipped assets
 
-_(none yet)_
+All files below are from **Kenney — Furniture Kit (2.0)**, created/distributed
+by Kenney (https://kenney.nl/assets/furniture-kit), **License: CC0 1.0**
+(https://creativecommons.org/publicdomain/zero/1.0/). Downloaded 2026-10-07 from
+`https://kenney.nl/media/pages/assets/furniture-kit/440e0608a4-1677580847/kenney_furniture-kit.zip`.
+Each GLB is < 100 KB, so no optimization (draco/meshopt/texture resize) was needed.
 
-| File | Pack | Author | Source URL | License |
-| ---- | ---- | ------ | ---------- | ------- |
+| File | Model | Use in room | Size | License |
+| ---- | ----- | ----------- | ---- | ------- |
+| `room/loungeChair.glb` | loungeChair | Cinema seats (arc) | 10 KB | CC0 1.0 |
+| `room/rugRounded.glb` | rugRounded | Rug under the fire | 11 KB | CC0 1.0 |
+| `room/lampRoundFloor.glb` | lampRoundFloor | Floor lamp | 7 KB | CC0 1.0 |
+| `room/doorwayOpen.glb` | doorwayOpen | Entrance door | 4 KB | CC0 1.0 |
 
 ---
 

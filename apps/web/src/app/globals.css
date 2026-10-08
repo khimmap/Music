@@ -85,4 +85,16 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+
+  /* Remove the 300ms tap delay on interactive elements. */
+  button,
+  a,
+  label,
+  input,
+  select,
+  textarea,
+  summary,
+  [role='button'] {
+    touch-action: manipulation;
+  }
 }
