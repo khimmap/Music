@@ -126,6 +126,26 @@ test('speech bubbles: at most one at a time, aria-hidden; off under reduced moti
   await reduced.close();
 });
 
+test('join by code navigates into an existing room', async ({ page, request }) => {
+  const { id } = (await (await request.post('http://localhost:4000/rooms')).json()) as {
+    id: string;
+  };
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await hydrated(page);
+  await page.getByTestId('join-input').fill(id);
+  await page.getByTestId('join-room').click();
+  await page.waitForURL(new RegExp(`/room/${id}`), { timeout: 10000 });
+});
+
+test('join with an unknown code shows an inline error', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await hydrated(page);
+  await page.getByTestId('join-input').fill('zzzznope');
+  await page.getByTestId('join-room').click();
+  await expect(page.getByTestId('join-error')).toBeVisible();
+  await expect(page).toHaveURL(/\/$|\/\?/); // still on the landing
+});
+
 test('3-step line: one row on desktop, stacked on phones, no orphan arrow', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   const steps = page.getByTestId('steps');

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { getServerBase } from '@/lib/socket';
 import { useQuality } from '@/effects/quality/QualityProvider';
@@ -19,6 +19,9 @@ export function Landing() {
   const [fire, setFire] = useState(false); // easter-egg night override
   const [lights, setLights] = useState<Lights>('on');
   const [error, setError] = useState<string | null>(null);
+  const [joinValue, setJoinValue] = useState('');
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [joining, setJoining] = useState(false);
   const creatingRef = useRef(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const stokeTimes = useRef<number[]>([]);
@@ -97,6 +100,33 @@ export function Landing() {
     }
   }, [reducedMotion, router]);
 
+  const joinRoom = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
+      setJoinError(null);
+      const raw = joinValue.trim();
+      const match = raw.match(/room\/([a-zA-Z0-9]+)/);
+      const id = match ? match[1]! : /^[a-zA-Z0-9]{4,}$/.test(raw) ? raw : null;
+      if (!id) {
+        setJoinError('Enter a room code or an invite link.');
+        return;
+      }
+      setJoining(true);
+      try {
+        const res = await fetch(`${getServerBase()}/rooms/${id}`);
+        if (!res.ok) throw new Error('not found');
+        const go = () => router.push(`/room/${id}${window.location.search}`);
+        const doc = document as Document & { startViewTransition?: (cb: () => void) => void };
+        if (typeof doc.startViewTransition === 'function') doc.startViewTransition(go);
+        else go();
+      } catch {
+        setJoinError('Room not found. Check the code or link.');
+        setJoining(false);
+      }
+    },
+    [joinValue, router],
+  );
+
   const creating = lights !== 'on';
   const tagline = fire ? FIRE_TAGLINE : TIME_TAGLINE[time];
 
@@ -169,6 +199,40 @@ export function Landing() {
             >
               {creating ? 'Lighting the room…' : 'Create a room'}
             </button>
+
+            <form
+              onSubmit={joinRoom}
+              data-testid="join-form"
+              className="flex w-full max-w-[320px] items-center gap-xs"
+            >
+              <input
+                type="text"
+                value={joinValue}
+                onChange={(e) => {
+                  setJoinValue(e.target.value);
+                  setJoinError(null);
+                }}
+                data-testid="join-input"
+                aria-label="Room code or invite link"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="Have a code? Paste it to join"
+                className="l-field min-w-0 flex-1 rounded-pill px-base py-xs font-sans text-body-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ember/50"
+              />
+              <button
+                type="submit"
+                data-testid="join-room"
+                disabled={joining}
+                className="l-join-btn rounded-pill px-base py-xs font-sans text-button transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/50 disabled:opacity-60"
+              >
+                {joining ? 'Joining…' : 'Join'}
+              </button>
+            </form>
+            {joinError && (
+              <p role="alert" data-testid="join-error" className="font-sans text-body-sm text-error">
+                {joinError}
+              </p>
+            )}
 
             <AvatarStrip />
 

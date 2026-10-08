@@ -75,6 +75,16 @@ const httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
     return;
   }
 
+  // Validate a room code/link before joining (so the landing never sends
+  // someone into a room that does not exist).
+  if (req.method === 'GET' && req.url?.startsWith('/rooms/')) {
+    const id = req.url.slice('/rooms/'.length).split(/[?#]/)[0] ?? '';
+    const room = id ? getRoom(id) : undefined;
+    if (room) sendJson(res, 200, { id: room.id, name: room.name });
+    else sendJson(res, 404, { error: 'not found' });
+    return;
+  }
+
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('not found');
 });

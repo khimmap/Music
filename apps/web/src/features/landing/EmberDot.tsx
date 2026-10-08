@@ -150,21 +150,24 @@ export function EmberDot({
       onPointerLeave={endHold}
       onPointerCancel={endHold}
       style={{ x, y }}
-      className="relative mb-md grid h-6 w-6 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/70"
+      className="relative mb-md grid h-9 w-8 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/70"
     >
       {/* Glow (scales via spring). Transform/opacity only. */}
       <motion.span
         aria-hidden="true"
         style={{ scale: glow }}
-        className="pointer-events-none absolute h-6 w-6 rounded-full"
+        className="pointer-events-none absolute h-8 w-8 rounded-full"
       >
         <span
           className="block h-full w-full rounded-full"
           style={{ background: 'radial-gradient(circle, rgba(244,145,91,0.9), rgba(244,145,91,0) 70%)' }}
         />
       </motion.span>
-      {/* The ember core. */}
-      <span aria-hidden="true" className="relative block h-2.5 w-2.5 rounded-full bg-ember" />
+      {/* Ember flame — drawn with clip-path + gradients (not an icon/emoji). */}
+      <span aria-hidden="true" className="ember-flame relative block">
+        <span className="ember-flame-outer" />
+        <span className="ember-flame-inner" />
+      </span>
       {/* Stoke sparks. */}
       {sparks.map((s) => (
         <motion.span

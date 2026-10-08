@@ -306,6 +306,7 @@
   --l-cta-bg: var(--color-primary);
   --l-cta-bg-hover: var(--color-primary-active);
   --l-cta-fg: var(--color-on-primary);
+  --l-field-border: var(--color-hairline-strong);
   color: var(--l-ink);
   transition:
     background-color 0.6s ease,
@@ -327,6 +328,101 @@
 .landing-cta:hover:not(:disabled) {
   background-color: var(--l-cta-bg-hover);
   box-shadow: 0 12px 40px rgba(12, 10, 9, 0.22);
+}
+
+/* Secondary "join a room" field + button (theme-aware). */
+.l-field {
+  background-color: transparent;
+  border: 1px solid var(--l-field-border);
+  color: var(--l-ink);
+}
+.l-field::placeholder {
+  color: var(--l-muted);
+}
+.l-join-btn {
+  background-color: transparent;
+  border: 1px solid var(--l-field-border);
+  color: var(--l-ink);
+}
+.l-join-btn:hover:not(:disabled) {
+  border-color: var(--l-ink);
+}
+
+/* Ember flame on the landing dot — clip-path silhouettes + warm gradients
+   derived from the ember accent (not an icon/emoji). */
+.ember-flame {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 28px;
+}
+.ember-flame-outer,
+.ember-flame-inner {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  transform-origin: center bottom;
+}
+.ember-flame-outer {
+  width: 18px;
+  height: 28px;
+  background: linear-gradient(
+    to top,
+    #b2231a 0%,
+    var(--color-ember) 42%,
+    #ffb15b 76%,
+    rgba(255, 177, 91, 0) 100%
+  );
+  clip-path: path('M9 0 C 12 6 16 9 14 16 C 13 21 15 24 9 28 C 3 24 5 21 4 16 C 2 9 6 6 9 0 Z');
+}
+.ember-flame-inner {
+  width: 11px;
+  height: 20px;
+  background: linear-gradient(
+    to top,
+    var(--color-ember) 0%,
+    #ffd27a 46%,
+    #fff3d6 86%,
+    rgba(255, 243, 214, 0) 100%
+  );
+  clip-path: path('M5.5 0 C 7.5 4 9.5 7 8.5 11 C 8 14 9 16 5.5 20 C 2 16 3 14 2.5 11 C 1.5 7 3.5 4 5.5 0 Z');
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes emberFlameOuter {
+    0%,
+    100% {
+      transform: translateX(-50%) scaleY(1) scaleX(1) skewX(0deg);
+    }
+    25% {
+      transform: translateX(-50%) scaleY(1.08) scaleX(0.94) skewX(2.5deg);
+    }
+    50% {
+      transform: translateX(-50%) scaleY(0.95) scaleX(1.04) skewX(-1.5deg);
+    }
+    75% {
+      transform: translateX(-50%) scaleY(1.05) scaleX(0.97) skewX(1.5deg);
+    }
+  }
+  @keyframes emberFlameInner {
+    0%,
+    100% {
+      transform: translateX(-50%) scaleY(1) scaleX(1) skewX(0deg);
+    }
+    30% {
+      transform: translateX(-50%) scaleY(0.92) scaleX(1.05) skewX(-2deg);
+    }
+    60% {
+      transform: translateX(-50%) scaleY(1.1) scaleX(0.92) skewX(2deg);
+    }
+  }
+  .ember-flame-outer {
+    animation: emberFlameOuter 2.1s ease-in-out infinite;
+  }
+  .ember-flame-inner {
+    animation: emberFlameInner 1.6s ease-in-out infinite;
+  }
 }
 
 /* Warm hearth glow behind the wordmark — the focal point (ember accent only). */
@@ -356,6 +452,7 @@ html[data-time='night'] .landing {
   --l-cta-bg: var(--color-on-primary);
   --l-cta-bg-hover: #e7e5e4;
   --l-cta-fg: var(--color-ink);
+  --l-field-border: rgba(255, 255, 255, 0.24);
 }
 html[data-time='night'] .landing .ember-orb {
   opacity: 0.14;
