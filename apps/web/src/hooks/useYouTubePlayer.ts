@@ -134,6 +134,10 @@ export function useYouTubePlayer({ mountEl, onEnded }: Options): {
           player = new window.YT.Player(inner, {
             width: '100%',
             height: '100%',
+            // Privacy-enhanced host + explicit origin: the standard, ToS-compliant
+            // embed config that avoids YouTube's "confirm you're not a bot" gate
+            // being triggered on localhost / origin-less embeds.
+            host: 'https://www.youtube-nocookie.com',
             playerVars: {
               autoplay: 0,
               controls: 0,
@@ -142,6 +146,7 @@ export function useYouTubePlayer({ mountEl, onEnded }: Options): {
               playsinline: 1,
               disablekb: 1,
               fs: 0,
+              origin: window.location.origin,
             },
             events: {
               // The player's methods (loadVideoById, etc.) only exist after
