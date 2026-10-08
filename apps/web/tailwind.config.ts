@@ -55,6 +55,7 @@ const config: Config = {
         },
         success: 'var(--color-success)',
         error: 'var(--color-error)',
+        ember: 'var(--color-ember)',
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],

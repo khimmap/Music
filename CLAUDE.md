@@ -11,9 +11,9 @@ and a shared types/events package.
 ember/
 ├── .claude/skills/        design-taste-frontend, web-design-guidelines
 ├── apps/web/              Next.js (App Router) + TypeScript + Tailwind
-│   └── src/{app,components,hooks,lib}
+│   └── src/{app,features/room,effects,hooks,lib}
 ├── apps/server/           Node + TypeScript + Socket.io (GET /health)
-│   └── src/{index.ts,config.ts,rooms/}
+│   └── src/{index.ts,config.ts,rooms/,palette/}
 ├── packages/shared/       types + Socket.io event contracts (@ember/shared)
 ├── e2e/                   Playwright smoke tests + config
 ├── DESIGN.md              design source of truth (ElevenLabs analysis)
@@ -58,34 +58,34 @@ corepack pnpm test:e2e       # Playwright smoke tests (auto-starts both apps)
 - **All Socket.io events are declared in `packages/shared/src/events.ts`.** Both
   client and server import names from `@ember/shared` — never hard-code an event
   string.
-- **UI components go in `apps/web/src/components`; socket logic goes in
-  `apps/web/src/hooks`.** Keep components presentational and hooks stateful.
+- **Room UI lives in `apps/web/src/features/room`; effects in
+  `apps/web/src/effects`; socket/player logic in `apps/web/src/hooks`.** Keep
+  components presentational and hooks stateful.
 - **Every new feature ships with at least one Playwright test** in `e2e/`.
 
-## 3D rules
+## 2D room & motion rules
 
-Ember's room is a 3D social space (three + @react-three/fiber + drei). Scene
-code lives in `apps/web/src/scene`, characters in `apps/web/src/characters`,
-interactions in `apps/web/src/interactions`, client state in
-`apps/web/src/stores`. 3D contracts (avatar, seat, interaction) live in
-`packages/shared`.
+Ember is a 2D listening room (no 3D, no characters). Listeners are icon avatars
+(emoji/initials). Realism over cartoon: natural light, physical easing, no bounce.
 
-- **Style:** low-poly / chibi. **CC0 assets only** — every asset is logged in
-  `apps/web/public/assets/LICENSES.md` with its source and license before use.
-- **YouTube is a DOM `<iframe>`** aligned to the 3D screen anchor. Never use
-  video textures.
-- **2D overlay UI** (chat input, queue, settings) stays as regular DOM on top of
-  the canvas — do not rebuild it in 3D.
-- **Interactions require a server-side cooldown** (see `INTERACTION_COOLDOWNS` in
-  `packages/shared/src/interaction.ts`); users can opt out of being targeted.
-- **Performance:** target 60fps on desktop; provide a **"lite mode"** for
-  low-end / mobile devices.
+- **Dark room per DESIGN.md.** The only light sources are the player (track
+  palette color) and the single warm **ember** accent (`--color-ember`). No
+  saturated CTA colors; keep DESIGN.md tokens as the source of truth.
+- **Palette:** on `queue:add` the server extracts the thumbnail palette and sends
+  it with the track; the client cross-fades palette colors (~1.5s) on change.
+- **YouTube is a DOM `<iframe>`** (`hooks/useYouTubePlayer`). Never use video
+  textures. Chat/queue/settings are 2D DOM overlays.
+- **Animate only `transform`, `opacity`, `filter`** (and canvas/WebGL). Never
+  animate layout properties. Shared springs/easings live in `lib/motion.ts`
+  (heavy, well-damped; ease-out entrances, faster ease-in exits).
+- **Quality tiers** (`effects/quality`): `QualityProvider` exposes `tier` + a
+  feature-flag object (`QualityFlags`). Auto-detect, auto-downgrade on sustained
+  low FPS (never auto-upgrade in a session, one-time toast), manual ⚙ setting
+  saved to localStorage. **Define all flags; part 2 plugs new effects in.**
+- **`prefers-reduced-motion` → fades only** (no drift, grain off), regardless of
+  tier. **Hidden tab → pause loops.** Target 60fps desktop; low tier drops WebGL.
 - **Max 12 users per room** (`MAX_ROOM_USERS` in `packages/shared/src/room.ts`).
-- The Canvas is **client-only** — always load it with `next/dynamic` and
-  `ssr: false`.
-- **Build order (one step at a time, never all at once):**
-  1. Static 3D room + synced YouTube
-  2. Avatars seated + chat bubbles
-  3. Door entrance animation
-  4. Character creator
-  5. Throw / emotes
+- **Build order (one step at a time):**
+  1. 2D room foundation: layout, palette, quality tiers, states (this part)
+  2. Particles, burn transition, live cursors, micro-interactions (plug into the
+     quality flags: `embersCount`, `burnTransition`, `liveCursors`, `tiltMagnetic`)

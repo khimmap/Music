@@ -6,22 +6,35 @@
  * (see TimeSync) and compute the expected position locally.
  */
 import type { QueueItem } from './queue';
+import type { Palette } from './palette';
+import type { Member } from './room';
 
 /** The track currently playing in a room (server-authoritative). */
 export interface PlaybackCurrent {
   /** YouTube video id. */
   videoId: string;
+  /** Track title. */
+  title: string;
+  /** Track author / channel ("artist"). */
+  artist: string;
   /** Server-clock ms that corresponds to playback position 0 seconds. */
   startedAtServerMs: number;
   /** When paused, the frozen position in seconds; null while playing. */
   pausedAtSec: number | null;
+  /** Colors extracted from the track thumbnail. */
+  palette: Palette;
+  /** Display name of whoever added the track. */
+  addedBy: string;
 }
 
 /** Full room state, sent on join and whenever the queue/listeners change. */
 export interface RoomSnapshot {
   id: string;
   name: string;
+  /** Listener count (= members.length). */
   listeners: number;
+  /** Connected members, shown as icon avatars. */
+  members: Member[];
   queue: QueueItem[];
   current: PlaybackCurrent | null;
 }
@@ -58,6 +71,20 @@ export interface RoomJoinPayload {
   roomId: string;
   /** Display name of the joining member. */
   name: string;
+  /** Avatar color (hex). */
+  color: string;
+  /** Optional avatar emoji. */
+  emoji?: string;
+}
+
+/** chat:send payload (client → server). */
+export interface ChatSendPayload {
+  text: string;
+}
+
+/** reaction:send payload (client → server). */
+export interface ReactionSendPayload {
+  kind: string;
 }
 
 /** Drift (seconds) beyond which the client silently re-seeks to the server position. */

@@ -1,43 +1,20 @@
 /**
- * Playful interaction contracts shared between the Ember web client and server.
- *
- * Skeleton only — throwing props (tomato/trash) and emotes. All interactions
- * are rate-limited server-side; the cooldown constants below are the single
- * source of truth for both the optimistic client UI and the server guard.
+ * Lightweight reaction/emote contracts shared between the Ember web client and
+ * server. (3D throwing has been removed; the 2D room uses reaction buttons.)
  */
 
-/** Throwable prop kinds. */
-export type ThrowableKind = 'tomato' | 'trash';
+/** Emote/reaction kinds a listener can send. */
+export type EmoteKind = 'wave' | 'clap' | 'fire' | 'heart' | 'laugh';
 
-/** Emote kinds a character can play. */
-export type EmoteKind = 'wave' | 'clap' | 'dance' | 'laugh' | 'heart';
-
-/** A member throwing a prop at another member. */
-export interface ThrowEvent {
-  /** Member id of the thrower. */
-  from: string;
-  /** Member id of the target. */
-  to: string;
-  /** What was thrown. */
-  kind: ThrowableKind;
-  /** Server-authoritative timestamp (epoch ms). */
-  at: number;
-}
-
-/** A member playing an emote. */
+/** A listener sending a reaction. */
 export interface EmoteEvent {
-  /** Member id playing the emote. */
+  /** Member id sending the reaction. */
   from: string;
-  /** Which emote. */
+  /** Which reaction. */
   kind: EmoteKind;
   /** Server-authoritative timestamp (epoch ms). */
   at: number;
 }
 
-/** Server-enforced cooldowns, in milliseconds, to prevent spam. */
-export const INTERACTION_COOLDOWNS = {
-  /** Minimum time between throws from one member. */
-  throw: 3000,
-  /** Minimum time between emotes from one member. */
-  emote: 1500,
-} as const;
+/** Server-enforced cooldown (ms) between reactions from one member. */
+export const EMOTE_COOLDOWN_MS = 1500;

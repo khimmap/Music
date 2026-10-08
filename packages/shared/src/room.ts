@@ -1,30 +1,38 @@
 /**
  * Room & membership contracts shared between the Ember web client and server.
- *
- * Skeleton only — fields will grow as the realtime room features are built.
  */
-
-/** A participant currently connected to an Ember listening room. */
-export interface Member {
-  /** Stable per-connection id (assigned by the server). */
-  id: string;
-  /** Display name shown to other members. */
-  name: string;
-  /** Epoch milliseconds when the member joined the room. */
-  joinedAt: number;
-}
 
 /** Maximum number of members allowed in a single room. */
 export const MAX_ROOM_USERS = 12;
 
-/** A shared listening room — the "radio station" a group listens to together. */
-export interface Room {
-  /** Unique room id used for joining and routing socket events. */
+/** A participant currently connected to a room, shown as an icon avatar. */
+export interface Member {
+  /** Stable per-connection id (the socket id). */
   id: string;
-  /** Human-friendly room name. */
+  /** Display name shown to other members. */
   name: string;
-  /** Members currently present in the room. */
+  /** Hex color for the avatar bubble / initials. */
+  color: string;
+  /** Optional emoji glyph; UI falls back to initials of `name` when absent. */
+  emoji?: string;
+}
+
+/** A shared listening room. */
+export interface Room {
+  id: string;
+  name: string;
   members: Member[];
-  /** Epoch milliseconds when the room was created. */
   createdAt: number;
+}
+
+/** A chat message relayed through the room. */
+export interface ChatMessage {
+  /** Member id of the sender. */
+  from: string;
+  /** Sender display name. */
+  name: string;
+  /** Message text. */
+  text: string;
+  /** Epoch milliseconds. */
+  at: number;
 }

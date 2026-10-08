@@ -1,8 +1,7 @@
 /**
  * Playback queue contracts shared between the Ember web client and server.
- *
- * Skeleton only — playback state and sync details are added later.
  */
+import type { Palette } from './palette';
 
 /** A single track queued for the room, backed by a YouTube video. */
 export interface QueueItem {
@@ -12,10 +11,14 @@ export interface QueueItem {
   youtubeVideoId: string;
   /** Track title shown in the queue. */
   title: string;
-  /** Total duration in seconds. */
+  /** Track author / channel ("artist"). */
+  artist: string;
+  /** Total duration in seconds (0 if unknown). */
   durationSeconds: number;
-  /** Member id of whoever added the track. */
+  /** Member id (or display name) of whoever added the track. */
   addedBy: string;
   /** Epoch milliseconds when the track was queued. */
   addedAt: number;
+  /** Colors extracted from the track thumbnail (server-side). */
+  palette: Palette;
 }

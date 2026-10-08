@@ -16,15 +16,11 @@ export const SocketEvents = {
   RoomLeave: 'room:leave',
   RoomState: 'room:state',
 
-  /** Seating (server-authoritative). */
-  SeatAssign: 'seat:assign',
-
   /** Chat. */
   ChatSend: 'chat:send',
 
-  /** Playful interactions. */
-  InteractionThrow: 'interaction:throw',
-  InteractionEmote: 'interaction:emote',
+  /** Reactions (buttons wired in a later part). */
+  Reaction: 'reaction:send',
 
   /** Queue. */
   QueueAdd: 'queue:add',

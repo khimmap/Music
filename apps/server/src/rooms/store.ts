@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type {
+  Member,
+  Palette,
   PlaybackAction,
   PlaybackCurrent,
   PlaybackSyncPayload,
@@ -13,8 +15,8 @@ interface RoomState {
   name: string;
   queue: QueueItem[];
   current: PlaybackCurrent | null;
-  /** Connected socket ids. */
-  listeners: Set<string>;
+  /** Connected members keyed by socket id. */
+  members: Map<string, Member>;
 }
 
 const rooms = new Map<string, RoomState>();
@@ -40,7 +42,7 @@ export function createRoom(): RoomState {
     name: `${pick(ADJECTIVES)} ${pick(NOUNS)}`,
     queue: [],
     current: null,
-    listeners: new Set(),
+    members: new Map(),
   };
   rooms.set(room.id, room);
   return room;
@@ -50,31 +52,47 @@ export function getRoom(id: string): RoomState | undefined {
   return rooms.get(id);
 }
 
-export function addListener(room: RoomState, socketId: string): void {
-  room.listeners.add(socketId);
+export function addMember(room: RoomState, member: Member): void {
+  room.members.set(member.id, member);
 }
 
-export function removeListener(room: RoomState, socketId: string): void {
-  room.listeners.delete(socketId);
+export function removeMember(room: RoomState, socketId: string): void {
+  room.members.delete(socketId);
 }
 
 /** Promote the next queued item to `current` and start it playing. */
 function promoteNext(room: RoomState): void {
   const next = room.queue.shift();
   room.current = next
-    ? { videoId: next.youtubeVideoId, startedAtServerMs: now(), pausedAtSec: null }
+    ? {
+        videoId: next.youtubeVideoId,
+        title: next.title,
+        artist: next.artist,
+        startedAtServerMs: now(),
+        pausedAtSec: null,
+        palette: next.palette,
+        addedBy: next.addedBy,
+      }
     : null;
 }
 
 /** Build a queue item from a validated video id. */
-export function makeQueueItem(videoId: string, title: string, addedBy: string): QueueItem {
+export function makeQueueItem(
+  videoId: string,
+  title: string,
+  artist: string,
+  addedBy: string,
+  palette: Palette,
+): QueueItem {
   return {
     id: shortId(),
     youtubeVideoId: videoId,
     title,
+    artist,
     durationSeconds: 0,
     addedBy,
     addedAt: now(),
+    palette,
   };
 }
 
@@ -128,10 +146,12 @@ export function reportEnded(room: RoomState, videoId: string): boolean {
 }
 
 export function toSnapshot(room: RoomState): RoomSnapshot {
+  const members = [...room.members.values()];
   return {
     id: room.id,
     name: room.name,
-    listeners: room.listeners.size,
+    listeners: members.length,
+    members,
     queue: room.queue,
     current: room.current,
   };

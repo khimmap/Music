@@ -3,14 +3,18 @@ import { Server } from 'socket.io';
 import {
   SocketEvents,
   parseYouTubeId,
+  type ChatMessage,
+  type ChatSendPayload,
   type PlaybackAction,
   type PlaybackSeekPayload,
   type QueueAddPayload,
+  type ReactionSendPayload,
   type RoomJoinPayload,
 } from '@ember/shared';
 import { serverConfig } from './config';
+import { getPalette } from './palette';
 import {
-  addListener,
+  addMember,
   createRoom,
   enqueue,
   getRoom,
@@ -18,7 +22,7 @@ import {
   next,
   pause,
   play,
-  removeListener,
+  removeMember,
   reportEnded,
   seek,
   toSnapshot,
@@ -84,8 +88,13 @@ const sessions = new Map<string, Session>();
 // In e2e mode we skip the oEmbed network call so tests stay fast and hermetic.
 const E2E = process.env.E2E_STUB_PLAYER === '1';
 
-/** Best-effort YouTube title via oEmbed; falls back to the video id. */
-async function fetchTitle(videoId: string): Promise<string> {
+interface TrackMeta {
+  title: string;
+  artist: string;
+}
+
+/** Best-effort YouTube title + author via oEmbed; falls back to the video id. */
+async function fetchMeta(videoId: string): Promise<TrackMeta> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 2500);
   try {
@@ -93,11 +102,14 @@ async function fetchTitle(videoId: string): Promise<string> {
       `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
       { signal: controller.signal },
     );
-    if (!res.ok) return videoId;
-    const data = (await res.json()) as { title?: unknown };
-    return typeof data.title === 'string' ? data.title : videoId;
+    if (!res.ok) return { title: videoId, artist: '' };
+    const data = (await res.json()) as { title?: unknown; author_name?: unknown };
+    return {
+      title: typeof data.title === 'string' ? data.title : videoId,
+      artist: typeof data.author_name === 'string' ? data.author_name : '',
+    };
   } catch {
-    return videoId;
+    return { title: videoId, artist: '' };
   } finally {
     clearTimeout(timer);
   }
@@ -132,10 +144,35 @@ io.on(SocketEvents.Connection, (socket) => {
   socket.on(SocketEvents.RoomJoin, (payload: RoomJoinPayload) => {
     const room = getRoom(payload.roomId);
     if (!room) return;
+    const name = payload.name || 'Guest';
     socket.join(room.id);
-    addListener(room, socket.id);
-    sessions.set(socket.id, { roomId: room.id, name: payload.name || 'Guest' });
+    addMember(room, {
+      id: socket.id,
+      name,
+      color: payload.color || '#f4915b',
+      emoji: payload.emoji,
+    });
+    sessions.set(socket.id, { roomId: room.id, name });
     emitRoomState(room.id);
+  });
+
+  socket.on(SocketEvents.ChatSend, (payload: ChatSendPayload) => {
+    const session = sessions.get(socket.id);
+    if (!session) return;
+    const text = String(payload?.text ?? '').slice(0, 500).trim();
+    if (!text) return;
+    const message: ChatMessage = { from: socket.id, name: session.name, text, at: Date.now() };
+    io.to(session.roomId).emit(SocketEvents.ChatSend, message);
+  });
+
+  socket.on(SocketEvents.Reaction, (payload: ReactionSendPayload) => {
+    const session = sessions.get(socket.id);
+    if (!session) return;
+    io.to(session.roomId).emit(SocketEvents.Reaction, {
+      from: socket.id,
+      kind: String(payload?.kind ?? ''),
+      at: Date.now(),
+    });
   });
 
   socket.on(SocketEvents.QueueAdd, async (payload: QueueAddPayload) => {
@@ -146,8 +183,11 @@ io.on(SocketEvents.Connection, (socket) => {
     const videoId = parseYouTubeId(payload.input);
     if (!videoId) return;
     const startedEmpty = room.current === null;
-    const title = E2E ? videoId : await fetchTitle(videoId);
-    enqueue(room, makeQueueItem(videoId, title, session.name));
+    const [meta, palette] = await Promise.all([
+      E2E ? Promise.resolve({ title: videoId, artist: '' }) : fetchMeta(videoId),
+      getPalette(videoId),
+    ]);
+    enqueue(room, makeQueueItem(videoId, meta.title, meta.artist, session.name, palette));
     emitRoomState(room.id);
     if (startedEmpty && room.current) emitSync(room.id, 'add', null);
   });
@@ -200,7 +240,7 @@ io.on(SocketEvents.Connection, (socket) => {
     if (session) {
       const room = getRoom(session.roomId);
       if (room) {
-        removeListener(room, socket.id);
+        removeMember(room, socket.id);
         emitRoomState(session.roomId);
       }
       sessions.delete(socket.id);
