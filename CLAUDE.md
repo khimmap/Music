@@ -41,6 +41,13 @@ corepack pnpm test:e2e       # Playwright smoke tests (auto-starts both apps)
 - **DESIGN.md is the single source of truth** for colors, fonts, radius, and
   tokens. Never override it. Tokens live as CSS variables in
   `apps/web/src/app/globals.css` and are mapped 1:1 in `apps/web/tailwind.config.ts`.
+- **The ember accent (`--color-ember`, `#f4915b`) is the one token NOT from
+  DESIGN.md.** It is the product's single warm "ember" brand light (fuse ring,
+  spark, avatar halos, spotlight). DESIGN.md has no neon/saturated accent by
+  design, so this is an intentional, documented addition — not a DESIGN.md
+  override. Keep it to one warm accent; never introduce a second accent color.
+  A sibling runtime var `--ember-flicker` (0.6–1, set by `<FireFlicker>`)
+  modulates the ember glow intensity; it carries no color.
 - Use the **design-taste-frontend** skill (`.claude/skills/design-taste-frontend`)
   for layout, hierarchy, motion, and spacing. If it ever conflicts with DESIGN.md
   on color or typography, **DESIGN.md wins.**

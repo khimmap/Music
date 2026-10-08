@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import { QualityProvider, useQuality } from '@/effects/quality/QualityProvider';
+import { useMagnetic } from '@/hooks/usePointerPhysics';
 import { AmbientBackground } from '@/effects/AmbientBackground';
 import { FilmGrain } from '@/effects/FilmGrain';
 import { Embers } from '@/effects/Embers';
@@ -11,6 +13,7 @@ import { useIdle } from '@/hooks/useIdle';
 import { RoomProvider, useRoom } from './RoomProvider';
 import { NowPlaying } from './NowPlaying';
 import { ProgressWave } from './ProgressWave';
+import { TimeDisplay } from './TimeDisplay';
 import { QueuePanel } from './QueuePanel';
 import { ListenersRow } from './ListenersRow';
 import { ReactionBar } from './ReactionBar';
@@ -58,19 +61,26 @@ function InviteButton() {
 
 function Controls() {
   const { playing, current, togglePlay, skip } = useRoom();
+  const { flags, reducedMotion } = useQuality();
   const disabled = !current;
+  const magnet = useMagnetic(flags.tiltMagnetic && !reducedMotion && !disabled);
   return (
     <div className="flex items-center gap-base" data-cinema-hide>
-      <button
+      <motion.button
+        ref={magnet.ref}
+        style={{ x: magnet.x, y: magnet.y }}
+        onPointerMove={magnet.onPointerMove}
+        onPointerLeave={magnet.onPointerLeave}
         type="button"
         data-testid="toggle-play"
+        data-magnetic={flags.tiltMagnetic && !reducedMotion}
         onClick={togglePlay}
         disabled={disabled}
         aria-label={playing ? 'Pause' : 'Play'}
-        className="rounded-pill bg-on-primary px-lg py-sm font-sans text-button text-ink transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:translate-y-px disabled:opacity-40"
+        className="rounded-pill bg-on-primary px-lg py-sm font-sans text-button text-ink transition-colors hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:opacity-40"
       >
         {playing ? 'Pause' : 'Play'}
-      </button>
+      </motion.button>
       <button
         type="button"
         data-testid="skip"
@@ -103,6 +113,7 @@ function RoomView() {
   const [queueOpen, setQueueOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
+  const [hit, setHit] = useState(false);
   const idle = useIdle(20_000);
   const cinema = idle && !chatOpen && !queueOpen;
 
@@ -112,6 +123,17 @@ function RoomView() {
     update();
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
+  }, []);
+
+  // Brief whole-screen shake when a tomato lands on you (150ms; inert under
+  // reduced motion — the keyframes live in a no-preference block).
+  useEffect(() => {
+    const onHit = () => {
+      setHit(true);
+      window.setTimeout(() => setHit(false), 160);
+    };
+    window.addEventListener('ember:hit', onHit);
+    return () => window.removeEventListener('ember:hit', onHit);
   }, []);
 
   const state = room.current ? (room.playing ? 'playing' : 'paused') : 'idle';
@@ -134,7 +156,7 @@ function RoomView() {
       data-tier={tier}
       data-palette={room.palette.dominant}
       data-cinema={cinema}
-      className={`relative min-h-[100dvh] w-full overflow-hidden bg-[#07060a] text-on-dark ${cinema ? 'ember-cinema' : ''}`}
+      className={`relative min-h-[100dvh] w-full overflow-hidden bg-[#07060a] text-on-dark ${cinema ? 'ember-cinema' : ''} ${hit ? 'ember-shake' : ''}`}
       style={{
         colorScheme: 'dark',
         filter: room.reconnecting ? 'saturate(0.35)' : 'none',
@@ -170,6 +192,7 @@ function RoomView() {
         <NowPlaying />
         <div data-cinema-hide className="flex w-full flex-col items-center gap-lg">
           <ProgressWave />
+          <TimeDisplay />
           <Controls />
         </div>
       </div>

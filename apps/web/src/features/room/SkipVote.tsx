@@ -9,6 +9,11 @@ export function SkipVote() {
   const votes = voteState?.votes ?? 0;
   const needed = voteState?.needed ?? 1;
   const pct = needed > 0 ? Math.min(100, (votes / needed) * 100) : 0;
+  // Position of the fuse "spark" on the ring (0% = top, clockwise).
+  const angle = (pct / 100) * 2 * Math.PI;
+  const r = 18;
+  const sparkX = Math.sin(angle) * r;
+  const sparkY = -Math.cos(angle) * r;
 
   return (
     <button
@@ -30,6 +35,18 @@ export function SkipVote() {
           mask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px))',
         }}
       />
+      {votes > 0 && (
+        <span
+          aria-hidden="true"
+          data-testid="vote-spark"
+          className="pointer-events-none absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full"
+          style={{
+            transform: `translate(calc(-50% + ${sparkX}px), calc(-50% + ${sparkY}px))`,
+            backgroundColor: 'var(--color-ember)',
+            boxShadow: '0 0 6px 2px var(--color-ember)',
+          }}
+        />
+      )}
     </button>
   );
 }

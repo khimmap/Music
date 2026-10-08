@@ -1,6 +1,13 @@
 'use client';
 
-import { useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+} from 'react';
 import { useRoom } from './RoomProvider';
 import { formatClock } from '@/lib/youtube';
 
@@ -20,24 +27,47 @@ const PATH = (() => {
 export function ProgressWave() {
   const { positionSec, durationSec, seekTo, current, palette } = useRoom();
   const ref = useRef<HTMLDivElement>(null);
+  const rectRef = useRef<DOMRect | null>(null);
   const [hover, setHover] = useState(false);
   const [hoverX, setHoverX] = useState(0);
 
   const disabled = !current || durationSec <= 0;
   const pct = durationSec > 0 ? Math.min(100, (positionSec / durationSec) * 100) : 0;
 
-  const ratioAt = (clientX: number): number => {
-    const rect = ref.current?.getBoundingClientRect();
+  // Cache the track rect on mount / resize / enter so pointer math never reads
+  // layout during render (and not once per pointermove).
+  const measure = () => {
+    rectRef.current = ref.current?.getBoundingClientRect() ?? null;
+  };
+  useEffect(() => {
+    measure();
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
+
+  const ratioFromClientX = (clientX: number): number => {
+    const rect = rectRef.current;
     if (!rect || rect.width === 0) return 0;
     return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
   };
 
+  const onEnter = () => {
+    measure();
+    setHover(true);
+  };
   const onMove = (e: PointerEvent) => {
-    const rect = ref.current?.getBoundingClientRect();
+    const rect = rectRef.current;
     if (rect) setHoverX(e.clientX - rect.left);
   };
   const onClick = (e: MouseEvent) => {
-    if (!disabled) seekTo(ratioAt(e.clientX) * durationSec);
+    if (!disabled) seekTo(ratioFromClientX(e.clientX) * durationSec);
   };
   const onKey = (e: KeyboardEvent) => {
     if (disabled) return;
@@ -54,7 +84,8 @@ export function ProgressWave() {
     }
   };
 
-  const hoverTime = ref.current ? ratioAt((ref.current.getBoundingClientRect().left ?? 0) + hoverX) * durationSec : 0;
+  const width = rectRef.current?.width ?? 0;
+  const hoverTime = width > 0 ? Math.min(1, Math.max(0, hoverX / width)) * durationSec : 0;
 
   return (
     <div className="relative w-full max-w-[880px]">
@@ -69,7 +100,7 @@ export function ProgressWave() {
         aria-valuenow={Math.floor(positionSec)}
         aria-valuetext={formatClock(positionSec)}
         onPointerMove={onMove}
-        onPointerEnter={() => setHover(true)}
+        onPointerEnter={onEnter}
         onPointerLeave={() => setHover(false)}
         onClick={onClick}
         onKeyDown={onKey}

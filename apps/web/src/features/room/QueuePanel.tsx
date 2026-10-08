@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { parseYouTubeId } from '@ember/shared';
+import { motion } from 'motion/react';
+import { parseYouTubeId, type QueueItem } from '@ember/shared';
 import { useRoom } from './RoomProvider';
 import { useQuality } from '@/effects/quality/QualityProvider';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useTilt } from '@/hooks/usePointerPhysics';
 import { youTubeThumbnail } from '@/lib/youtube';
 
 const GLASS: Record<string, string> = {
@@ -12,10 +15,62 @@ const GLASS: Record<string, string> = {
   solid: 'bg-surface-dark-elevated',
 };
 
+/** One queued track. Tilts toward the cursor with a spotlight that lights the
+ * card edge nearest the pointer (both transform-only). Flat when `tilt` is off
+ * (low tier / reduced motion). */
+function QueueCard({ item, tilt: enabled }: { item: QueueItem; tilt: boolean }) {
+  const t = useTilt(enabled);
+  return (
+    <motion.li
+      ref={t.ref}
+      onPointerEnter={t.onPointerEnter}
+      onPointerMove={t.onPointerMove}
+      onPointerLeave={t.onPointerLeave}
+      style={{ rotateX: t.rotateX, rotateY: t.rotateY, transformPerspective: 600 }}
+      data-testid="queue-card"
+      data-tilt={enabled}
+      className="relative flex items-center gap-sm overflow-hidden rounded-lg bg-white/[0.03] p-xs will-change-transform"
+    >
+      {/* Spotlight sprite: centered on the card's top-left origin, then
+          translated to the cursor (transform-only); clipped by overflow-hidden. */}
+      <motion.span
+        aria-hidden="true"
+        style={{
+          x: t.glowX,
+          y: t.glowY,
+          opacity: t.glow,
+          background: 'radial-gradient(circle, rgba(244,145,91,0.5), rgba(244,145,91,0) 70%)',
+        }}
+        className="pointer-events-none absolute -left-20 -top-20 h-40 w-40 rounded-full"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element -- external YouTube thumbnail */}
+      <img
+        src={youTubeThumbnail(item.youtubeVideoId)}
+        alt=""
+        width={64}
+        height={36}
+        loading="lazy"
+        className="h-9 w-16 shrink-0 rounded-sm object-cover"
+      />
+      <div className="min-w-0">
+        <p className="truncate font-sans text-body-sm text-on-dark" title={item.title}>
+          {item.title}
+        </p>
+        <p className="truncate font-sans text-caption text-on-dark-soft">
+          {item.artist ? `${item.artist} · ` : ''}
+          {item.addedBy}
+        </p>
+      </div>
+    </motion.li>
+  );
+}
+
 /** Frosted-glass queue column: paste a link, see the upcoming tracks. */
 export function QueuePanel() {
   const { queue, addToQueue } = useRoom();
   const { flags } = useQuality();
+  const reducedMotion = useReducedMotion();
+  const tiltOn = flags.tiltMagnetic && !reducedMotion;
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -76,28 +131,7 @@ export function QueuePanel() {
             Nothing queued yet. Paste a link to get the room going.
           </li>
         ) : (
-          queue.map((item) => (
-            <li key={item.id} className="flex items-center gap-sm rounded-lg bg-white/[0.03] p-xs">
-              {/* eslint-disable-next-line @next/next/no-img-element -- external YouTube thumbnail */}
-              <img
-                src={youTubeThumbnail(item.youtubeVideoId)}
-                alt=""
-                width={64}
-                height={36}
-                loading="lazy"
-                className="h-9 w-16 shrink-0 rounded-sm object-cover"
-              />
-              <div className="min-w-0">
-                <p className="truncate font-sans text-body-sm text-on-dark" title={item.title}>
-                  {item.title}
-                </p>
-                <p className="truncate font-sans text-caption text-on-dark-soft">
-                  {item.artist ? `${item.artist} · ` : ''}
-                  {item.addedBy}
-                </p>
-              </div>
-            </li>
-          ))
+          queue.map((item) => <QueueCard key={item.id} item={item} tilt={tiltOn} />)
         )}
       </ul>
     </section>
