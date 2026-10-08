@@ -227,15 +227,6 @@
   opacity: 0.38;
 }
 
-/* Rising ember specks on the landing (hidden unless motion is allowed). */
-.ember-spark-float {
-  position: absolute;
-  bottom: -14px;
-  border-radius: 9999px;
-  background: var(--color-ember);
-  opacity: 0;
-}
-
 @media (prefers-reduced-motion: no-preference) {
   @keyframes emberDriftA {
     0%,
@@ -291,27 +282,6 @@
     animation: emberRise 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  @keyframes emberFloat {
-    0% {
-      opacity: 0;
-      transform: translate3d(0, 0, 0) scale(0.8);
-    }
-    12% {
-      opacity: 0.85;
-    }
-    80% {
-      opacity: 0.45;
-    }
-    100% {
-      opacity: 0;
-      transform: translate3d(var(--drift, 10px), -72vh, 0) scale(1.05);
-    }
-  }
-  .ember-spark-float {
-    animation: emberFloat var(--dur, 10s) ease-in infinite;
-    animation-delay: var(--delay, 0s);
-  }
-
   @keyframes emberGlowPulse {
     0%,
     100% {
@@ -326,6 +296,95 @@
   .ember-glow {
     animation: emberGlowPulse 7s ease-in-out infinite;
   }
+}
+
+/* ---- Landing: time-of-day theme + lights-out entrance ---- */
+.landing {
+  --l-ink: var(--color-ink);
+  --l-body: var(--color-body);
+  --l-muted: var(--color-muted);
+  --l-cta-bg: var(--color-primary);
+  --l-cta-bg-hover: var(--color-primary-active);
+  --l-cta-fg: var(--color-on-primary);
+  color: var(--l-ink);
+  transition:
+    background-color 0.6s ease,
+    color 0.6s ease;
+}
+.l-ink {
+  color: var(--l-ink);
+}
+.l-body {
+  color: var(--l-body);
+}
+.l-muted {
+  color: var(--l-muted);
+}
+.landing-cta {
+  background-color: var(--l-cta-bg);
+  color: var(--l-cta-fg);
+}
+.landing-cta:hover:not(:disabled) {
+  background-color: var(--l-cta-bg-hover);
+  box-shadow: 0 12px 40px rgba(12, 10, 9, 0.22);
+}
+
+/* Warm hearth glow behind the wordmark — the focal point (ember accent only). */
+.landing-hearth {
+  background: radial-gradient(
+    circle,
+    rgba(244, 145, 91, 0.42),
+    rgba(244, 197, 168, 0.22) 42%,
+    transparent 68%
+  );
+}
+html[data-time='evening'] .landing-hearth {
+  background: radial-gradient(
+    circle,
+    rgba(244, 145, 91, 0.6),
+    rgba(244, 145, 91, 0.26) 44%,
+    transparent 70%
+  );
+}
+
+/* Night: dark surface per DESIGN.md dark tokens; text/CTA stay WCAG AA. */
+html[data-time='night'] .landing {
+  background-color: var(--color-surface-dark);
+  --l-ink: var(--color-on-dark);
+  --l-body: var(--color-on-dark-soft);
+  --l-muted: var(--color-on-dark-soft);
+  --l-cta-bg: var(--color-on-primary);
+  --l-cta-bg-hover: #e7e5e4;
+  --l-cta-fg: var(--color-ink);
+}
+html[data-time='night'] .landing .ember-orb {
+  opacity: 0.14;
+}
+html[data-time='night'] .landing-hearth {
+  background: radial-gradient(
+    circle,
+    rgba(244, 145, 91, 0.5),
+    rgba(244, 145, 91, 0.18) 40%,
+    transparent 66%
+  );
+}
+
+/* Lights-out: dark surface, atmosphere fades, content dims (ember dot stays). */
+body[data-lights='dimming'] .landing,
+body[data-lights='out'] .landing {
+  background-color: #07060a;
+}
+body[data-lights='dimming'] .landing-atmos,
+body[data-lights='out'] .landing-atmos {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.landing-dim {
+  transition: opacity 0.45s ease;
+}
+body[data-lights='dimming'] .landing-dim,
+body[data-lights='out'] .landing-dim {
+  opacity: 0.16;
 }
 
 /* Cinema mode: fade non-essential chrome (transform/opacity only). */

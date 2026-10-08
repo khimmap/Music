@@ -25,9 +25,17 @@ export const metadata: Metadata = {
     'A shared listening room where friends watch YouTube and listen to music together in real time.',
 };
 
+// Set `data-time` on <html> before first paint so the landing never flashes the
+// wrong time-of-day theme. `?time=` overrides the local clock. Mirrors
+// hourToState() in features/landing/timeOfDay.ts — keep them in sync.
+const TIME_SCRIPT = `(function(){try{var q=new URLSearchParams(location.search).get('time');var v=['morning','day','evening','night'];var t=v.indexOf(q)>=0?q:(function(){var h=new Date().getHours();if(h>=5&&h<12)return'morning';if(h>=12&&h<17)return'day';if(h>=17&&h<23)return'evening';return'night';})();document.documentElement.setAttribute('data-time',t);}catch(e){document.documentElement.setAttribute('data-time','day');}})();`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${ebGaramond.variable}`}>
+    <html lang="en" className={`${inter.variable} ${ebGaramond.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: TIME_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );
