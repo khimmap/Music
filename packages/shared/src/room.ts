@@ -15,6 +15,8 @@ export interface Member {
   color: string;
   /** Optional emoji glyph; UI falls back to initials of `name` when absent. */
   emoji?: string;
+  /** When true, this member has opted out of being targeted by throws. */
+  optOut?: boolean;
 }
 
 /** A shared listening room. */

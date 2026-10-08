@@ -52,6 +52,9 @@
      introduced for the "ember" brand light; used consistently). */
   --color-ember: #f4915b;
 
+  /* Noise-driven flicker intensity, set by <FireFlicker>. */
+  --ember-flicker: 1;
+
   /* Radius */
   --radius-none: 0px;
   --radius-xs: 4px;
@@ -148,4 +151,50 @@
   .ember-grain-animated {
     animation: emberGrain 0.6s steps(1) infinite;
   }
+
+  @keyframes emberShake {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    20% {
+      transform: translate3d(-2px, 1px, 0);
+    }
+    40% {
+      transform: translate3d(2px, -1px, 0);
+    }
+    60% {
+      transform: translate3d(-2px, -1px, 0);
+    }
+    80% {
+      transform: translate3d(1px, 2px, 0);
+    }
+  }
+  .ember-shake {
+    animation: emberShake 0.15s linear;
+  }
+
+  @keyframes emberWave {
+    0% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+  .ember-wave {
+    animation: emberWave 0.6s ease;
+  }
+}
+
+/* Cinema mode: fade non-essential chrome (transform/opacity only). */
+[data-cinema-hide] {
+  transition: opacity 0.6s ease;
+}
+.ember-cinema [data-cinema-hide] {
+  opacity: 0;
+  pointer-events: none;
 }

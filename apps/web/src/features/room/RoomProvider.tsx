@@ -10,14 +10,18 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type {
-  ChatMessage,
-  Member,
-  Palette,
-  PlaybackCurrent,
-  QueueItem,
+import type { Socket } from 'socket.io-client';
+import {
+  FALLBACK_PALETTE,
+  SocketEvents,
+  type ChatMessage,
+  type Member,
+  type Palette,
+  type PlaybackCurrent,
+  type QueueItem,
+  type ThrowResult,
+  type VoteState,
 } from '@ember/shared';
-import { FALLBACK_PALETTE } from '@ember/shared';
 import { useRoomSocket } from '@/hooks/useRoomSocket';
 import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
 import { usePlaybackSync } from '@/hooks/usePlaybackSync';
@@ -26,8 +30,13 @@ import { isStubPlayer } from '@/lib/youtube';
 
 declare global {
   interface Window {
-    /** e2e-only: force the reconnecting state for the states test. */
     __emberForceReconnecting?: (on: boolean) => void;
+    __emberChat?: (text: string) => void;
+    __emberThrow?: (to: string) => Promise<ThrowResult>;
+    __emberVoteSkip?: () => void;
+    __emberSetOptOut?: (optOut: boolean) => void;
+    __emberReact?: (kind: string) => void;
+    __emberSelfId?: string | null;
   }
 }
 
@@ -48,6 +57,10 @@ interface RoomContextValue {
   reconnecting: boolean;
   audioUnlocked: boolean;
   inviteLink: string;
+  socket: Socket | null;
+  selfId: string | null;
+  voteState: VoteState | null;
+  optedOut: boolean;
   registerPlayerMount: (el: HTMLElement | null) => void;
   unlockAudio: () => void;
   addToQueue: (input: string) => void;
@@ -56,6 +69,11 @@ interface RoomContextValue {
   skip: () => void;
   sendChat: (text: string) => void;
   react: (kind: string) => void;
+  throwAt: (to: string) => Promise<ThrowResult>;
+  voteSkip: () => void;
+  setOptOut: (optOut: boolean) => void;
+  sendCursor: (x: number, y: number) => void;
+  sendTyping: (typing: boolean) => void;
 }
 
 const RoomContext = createContext<RoomContextValue | null>(null);
@@ -74,6 +92,8 @@ export function RoomProvider({ roomId, children }: { roomId: string; children: R
   const [audioUnlocked, setAudioUnlocked] = useState(() => isStubPlayer());
   const [forcedReconnecting, setForcedReconnecting] = useState(false);
   const [everConnected, setEverConnected] = useState(false);
+  const [selfId, setSelfId] = useState<string | null>(null);
+  const [voteState, setVoteState] = useState<VoteState | null>(null);
 
   const endedRef = useRef<() => void>(() => {});
   const { controls } = useYouTubePlayer({ mountEl, onEnded: () => endedRef.current() });
@@ -84,26 +104,73 @@ export function RoomProvider({ roomId, children }: { roomId: string; children: R
   };
 
   useEffect(() => {
-    if (connected) setEverConnected(true);
-  }, [connected]);
+    if (connected) {
+      setEverConnected(true);
+      setSelfId(socket?.id ?? null);
+    }
+  }, [connected, socket]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const onVote = (v: VoteState) => setVoteState(v);
+    socket.on(SocketEvents.VoteState, onVote);
+    return () => {
+      socket.off(SocketEvents.VoteState, onVote);
+    };
+  }, [socket]);
+
+  const interactions = useMemo(
+    () => ({
+      throwAt: (to: string): Promise<ThrowResult> =>
+        new Promise((resolve) => {
+          if (!socket) {
+            resolve({ ok: false, reason: 'invalid' });
+            return;
+          }
+          socket.emit(SocketEvents.InteractionThrow, { to }, (r: ThrowResult) => resolve(r));
+        }),
+      voteSkip: () => socket?.emit(SocketEvents.VoteSkip),
+      setOptOut: (optOut: boolean) => socket?.emit(SocketEvents.MemberOptOut, { optOut }),
+      sendCursor: (x: number, y: number) => socket?.volatile.emit(SocketEvents.CursorMove, { x, y }),
+      sendTyping: (typing: boolean) => socket?.emit(SocketEvents.ChatTyping, { typing }),
+    }),
+    [socket],
+  );
+
+  const unlockAudio = useCallback(() => setAudioUnlocked(true), []);
 
   useEffect(() => {
     if (!isStubPlayer()) return;
     window.__emberForceReconnecting = (on: boolean) => setForcedReconnecting(on);
     window.__emberSeek = (sec: number) => sync.actions.seek(sec);
+    window.__emberChat = (text: string) => sync.actions.sendChat(text);
+    window.__emberReact = (kind: string) => sync.actions.react(kind);
+    window.__emberThrow = (to: string) => interactions.throwAt(to);
+    window.__emberVoteSkip = () => interactions.voteSkip();
+    window.__emberSetOptOut = (optOut: boolean) => interactions.setOptOut(optOut);
     return () => {
       delete window.__emberForceReconnecting;
       delete window.__emberSeek;
+      delete window.__emberChat;
+      delete window.__emberReact;
+      delete window.__emberThrow;
+      delete window.__emberVoteSkip;
+      delete window.__emberSetOptOut;
     };
-  }, [sync.actions]);
+  }, [sync.actions, interactions]);
 
-  const unlockAudio = useCallback(() => setAudioUnlocked(true), []);
+  useEffect(() => {
+    if (isStubPlayer()) window.__emberSelfId = selfId;
+  }, [selfId]);
+
+  const members = useMemo(() => sync.snapshot?.members ?? [], [sync.snapshot]);
+  const optedOut = members.find((m) => m.id === selfId)?.optOut ?? false;
 
   const value = useMemo<RoomContextValue>(
     () => ({
       roomId,
       roomName: sync.snapshot?.name ?? 'Loading room',
-      members: sync.snapshot?.members ?? [],
+      members,
       listeners: sync.snapshot?.listeners ?? 0,
       queue: sync.snapshot?.queue ?? [],
       current: sync.current,
@@ -117,6 +184,10 @@ export function RoomProvider({ roomId, children }: { roomId: string; children: R
       reconnecting: forcedReconnecting || (!connected && everConnected),
       audioUnlocked,
       inviteLink: typeof window !== 'undefined' ? window.location.href : '',
+      socket,
+      selfId,
+      voteState,
+      optedOut,
       registerPlayerMount: setMountEl,
       unlockAudio,
       addToQueue: sync.actions.addToQueue,
@@ -125,8 +196,27 @@ export function RoomProvider({ roomId, children }: { roomId: string; children: R
       skip: sync.actions.skip,
       sendChat: sync.actions.sendChat,
       react: sync.actions.react,
+      throwAt: interactions.throwAt,
+      voteSkip: interactions.voteSkip,
+      setOptOut: interactions.setOptOut,
+      sendCursor: interactions.sendCursor,
+      sendTyping: interactions.sendTyping,
     }),
-    [roomId, sync, connected, forcedReconnecting, everConnected, audioUnlocked, unlockAudio],
+    [
+      roomId,
+      sync,
+      members,
+      connected,
+      forcedReconnecting,
+      everConnected,
+      audioUnlocked,
+      socket,
+      selfId,
+      voteState,
+      optedOut,
+      interactions,
+      unlockAudio,
+    ],
   );
 
   return <RoomContext.Provider value={value}>{children}</RoomContext.Provider>;

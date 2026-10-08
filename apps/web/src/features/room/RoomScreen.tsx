@@ -4,19 +4,24 @@ import { useEffect, useState } from 'react';
 import { QualityProvider, useQuality } from '@/effects/quality/QualityProvider';
 import { AmbientBackground } from '@/effects/AmbientBackground';
 import { FilmGrain } from '@/effects/FilmGrain';
+import { Embers } from '@/effects/Embers';
+import { FireFlicker } from '@/effects/FireFlicker';
+import { LiveCursors } from '@/effects/LiveCursors';
+import { useIdle } from '@/hooks/useIdle';
 import { RoomProvider, useRoom } from './RoomProvider';
 import { NowPlaying } from './NowPlaying';
 import { ProgressWave } from './ProgressWave';
 import { QueuePanel } from './QueuePanel';
 import { ListenersRow } from './ListenersRow';
 import { ReactionBar } from './ReactionBar';
+import { SkipVote } from './SkipVote';
 import { ChatDrawer } from './ChatDrawer';
 import { SettingsMenu } from './SettingsMenu';
+import { Shortcuts } from './Shortcuts';
 import { Empty } from './states/Empty';
 import { ClickToListen } from './states/ClickToListen';
 import { Reconnecting } from './states/Reconnecting';
 
-/** Entry: sets up the quality + room providers and renders the room. */
 export function RoomScreen({ roomId }: { roomId: string }) {
   return (
     <QualityProvider>
@@ -55,7 +60,7 @@ function Controls() {
   const { playing, current, togglePlay, skip } = useRoom();
   const disabled = !current;
   return (
-    <div className="flex items-center gap-base">
+    <div className="flex items-center gap-base" data-cinema-hide>
       <button
         type="button"
         data-testid="toggle-play"
@@ -96,7 +101,10 @@ function RoomView() {
   const room = useRoom();
   const { tier } = useQuality();
   const [queueOpen, setQueueOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
+  const idle = useIdle(20_000);
+  const cinema = idle && !chatOpen && !queueOpen;
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -105,6 +113,7 @@ function RoomView() {
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
   }, []);
+
   const state = room.current ? (room.playing ? 'playing' : 'paused') : 'idle';
   const showListen = !room.audioUnlocked;
   const showEmpty =
@@ -124,7 +133,8 @@ function RoomView() {
       data-testid="room-stage"
       data-tier={tier}
       data-palette={room.palette.dominant}
-      className="relative min-h-[100dvh] w-full overflow-hidden bg-[#07060a] text-on-dark"
+      data-cinema={cinema}
+      className={`relative min-h-[100dvh] w-full overflow-hidden bg-[#07060a] text-on-dark ${cinema ? 'ember-cinema' : ''}`}
       style={{
         colorScheme: 'dark',
         filter: room.reconnecting ? 'saturate(0.35)' : 'none',
@@ -132,16 +142,21 @@ function RoomView() {
       }}
     >
       <AmbientBackground palette={room.palette} />
+      <Embers />
       <FilmGrain />
+      <FireFlicker />
+      <LiveCursors />
 
-      {/* Machine-readable playback state for e2e. */}
       <div className="sr-only" aria-hidden="true">
         <span data-testid="current-video">{room.current?.videoId ?? ''}</span>
         <span data-testid="playback-state">{state}</span>
         <span data-testid="position-sec">{Math.floor(room.positionSec)}</span>
       </div>
 
-      <header className="relative z-30 flex items-center justify-between gap-base p-base">
+      <header
+        data-cinema-hide
+        className="relative z-30 flex items-center justify-between gap-base p-base"
+      >
         <span className="font-sans text-caption-uppercase uppercase tracking-[0.12em] text-on-dark-soft">
           Ember
         </span>
@@ -153,18 +168,25 @@ function RoomView() {
 
       <div className="relative z-10 mx-auto flex w-full max-w-content flex-col items-center gap-lg px-base pb-[240px] pt-sm lg:pr-[380px]">
         <NowPlaying />
-        <ProgressWave />
-        <Controls />
+        <div data-cinema-hide className="flex w-full flex-col items-center gap-lg">
+          <ProgressWave />
+          <Controls />
+        </div>
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-end justify-between gap-base p-base">
         <ListenersRow />
-        <ReactionBar />
+        <div data-cinema-hide className="flex items-center gap-sm">
+          <ReactionBar />
+          <SkipVote />
+        </div>
       </div>
 
-      {/* One QueuePanel: a right column on desktop, a bottom sheet on mobile. */}
       {isDesktop ? (
-        <aside className="pointer-events-none absolute right-base top-20 z-20 h-[calc(100dvh-220px)] w-[340px]">
+        <aside
+          data-cinema-hide
+          className="pointer-events-none absolute right-base top-20 z-20 h-[calc(100dvh-220px)] w-[340px]"
+        >
           <QueuePanel />
         </aside>
       ) : (
@@ -172,6 +194,7 @@ function RoomView() {
           <button
             type="button"
             data-testid="queue-toggle"
+            data-cinema-hide
             onClick={() => setQueueOpen((o) => !o)}
             aria-expanded={queueOpen}
             className="pointer-events-auto fixed right-base top-[72px] z-30 rounded-pill border border-white/15 bg-white/[0.04] px-base py-xs font-sans text-button text-on-dark transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
@@ -190,7 +213,8 @@ function RoomView() {
         </>
       )}
 
-      <ChatDrawer />
+      <ChatDrawer open={chatOpen} setOpen={setChatOpen} />
+      <Shortcuts />
 
       {room.toast && <Toast text={room.toast} />}
       {showEmpty && <Empty />}

@@ -4,13 +4,21 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRoom } from './RoomProvider';
 
 /** Chat as a right-side drawer. Press Enter (when not typing) to open; Escape to
- * close. Plain message list for now. */
-export function ChatDrawer() {
-  const { messages, sendChat } = useRoom();
-  const [open, setOpen] = useState(false);
+ * close. Plain message list; sends typing indicators. Controlled by the parent
+ * so cinema mode can tell whether it is open. */
+export function ChatDrawer({ open, setOpen }: { open: boolean; setOpen: (open: boolean) => void }) {
+  const { messages, sendChat, sendTyping } = useRoom();
   const [text, setText] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const typingTimer = useRef(0);
+
+  const onType = (value: string) => {
+    setText(value);
+    sendTyping(true);
+    window.clearTimeout(typingTimer.current);
+    typingTimer.current = window.setTimeout(() => sendTyping(false), 1200);
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -21,7 +29,7 @@ export function ChatDrawer() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
+  }, [open, setOpen]);
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
@@ -36,6 +44,7 @@ export function ChatDrawer() {
     if (!t) return;
     sendChat(t);
     setText('');
+    sendTyping(false);
   }
 
   return (
@@ -43,7 +52,7 @@ export function ChatDrawer() {
       <button
         type="button"
         data-testid="chat-toggle"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen(!open)}
         aria-expanded={open}
         className="pointer-events-auto fixed bottom-[88px] left-1/2 z-30 -translate-x-1/2 rounded-pill border border-white/15 bg-white/[0.04] px-base py-xs font-sans text-button text-on-dark transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
       >
@@ -71,13 +80,13 @@ export function ChatDrawer() {
         <div
           ref={listRef}
           data-testid="chat-messages"
-          className="flex min-h-0 flex-1 flex-col gap-sm overflow-y-auto px-base"
+          className="flex min-h-0 flex-1 flex-col gap-sm overflow-y-auto overscroll-contain px-base"
         >
           {messages.length === 0 ? (
             <p className="font-sans text-body-sm text-on-dark-soft">No messages yet. Say hello.</p>
           ) : (
             messages.map((m, i) => (
-              <p key={`${m.at}-${i}`} className="font-sans text-body-sm text-on-dark">
+              <p key={`${m.at}-${i}`} className="break-words font-sans text-body-sm text-on-dark">
                 <span className="text-on-dark-soft">{m.name}: </span>
                 {m.text}
               </p>
@@ -88,7 +97,7 @@ export function ChatDrawer() {
           <input
             ref={inputRef}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => onType(e.target.value)}
             data-testid="chat-input"
             aria-label="Message"
             autoComplete="off"

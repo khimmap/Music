@@ -17,6 +17,8 @@ interface RoomState {
   current: PlaybackCurrent | null;
   /** Connected members keyed by socket id. */
   members: Map<string, Member>;
+  /** Socket ids that voted to skip the current track. */
+  skipVotes: Set<string>;
 }
 
 const rooms = new Map<string, RoomState>();
@@ -43,6 +45,7 @@ export function createRoom(): RoomState {
     queue: [],
     current: null,
     members: new Map(),
+    skipVotes: new Set(),
   };
   rooms.set(room.id, room);
   return room;
@@ -58,10 +61,47 @@ export function addMember(room: RoomState, member: Member): void {
 
 export function removeMember(room: RoomState, socketId: string): void {
   room.members.delete(socketId);
+  room.skipVotes.delete(socketId);
+}
+
+export function setOptOut(room: RoomState, socketId: string, optOut: boolean): void {
+  const member = room.members.get(socketId);
+  if (member) member.optOut = optOut;
+}
+
+export interface VoteOutcome {
+  videoId: string | null;
+  votes: number;
+  needed: number;
+  passed: boolean;
+}
+
+/** Majority = floor(n/2)+1. Promotes the next track when reached. */
+export function voteSkip(room: RoomState, socketId: string): VoteOutcome {
+  const needed = Math.max(1, Math.floor(room.members.size / 2) + 1);
+  if (!room.current) return { videoId: null, votes: 0, needed, passed: false };
+  room.skipVotes.add(socketId);
+  if (room.skipVotes.size >= needed) {
+    next(room);
+    return { videoId: room.current?.videoId ?? null, votes: 0, needed, passed: true };
+  }
+  return { videoId: room.current.videoId, votes: room.skipVotes.size, needed, passed: false };
+}
+
+export function voteSnapshot(room: RoomState): VoteOutcome {
+  const needed = Math.max(1, Math.floor(room.members.size / 2) + 1);
+  return { videoId: room.current?.videoId ?? null, votes: room.skipVotes.size, needed, passed: false };
+}
+
+/** Whether `targetId` can be targeted by a throw (exists + not opted out). */
+export function canTarget(room: RoomState, targetId: string): boolean {
+  const member = room.members.get(targetId);
+  return Boolean(member) && !member?.optOut;
 }
 
 /** Promote the next queued item to `current` and start it playing. */
 function promoteNext(room: RoomState): void {
+  room.skipVotes.clear();
   const next = room.queue.shift();
   room.current = next
     ? {

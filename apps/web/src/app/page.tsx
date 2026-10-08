@@ -17,7 +17,10 @@ export default function HomePage() {
       if (!res.ok) throw new Error('create failed');
       const data = (await res.json()) as { id: string };
       // Preserve any query flags (e.g. ?e2e=1) when entering the room.
-      router.push(`/room/${data.id}${window.location.search}`);
+      const go = () => router.push(`/room/${data.id}${window.location.search}`);
+      const doc = document as Document & { startViewTransition?: (cb: () => void) => void };
+      if (typeof doc.startViewTransition === 'function') doc.startViewTransition(go);
+      else go();
     } catch {
       setError('Could not reach the room server. Make sure it is running.');
       setCreating(false);

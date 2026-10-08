@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import { useQuality } from '@/effects/quality/QualityProvider';
 import type { QualityMode } from '@/effects/quality/detect';
+import { useRoom } from './RoomProvider';
 
 const MODES: QualityMode[] = ['auto', 'high', 'medium', 'low'];
 
 /** Graphics settings (⚙): Auto / High / Medium / Low, persisted to localStorage. */
 export function SettingsMenu() {
   const { mode, setMode, tier } = useQuality();
+  const { optedOut, setOptOut } = useRoom();
   const [open, setOpen] = useState(false);
 
   return (
@@ -51,6 +53,17 @@ export function SettingsMenu() {
           <p className="px-sm pt-xs font-sans text-caption text-on-dark-soft">
             Active tier: {tier}
           </p>
+          <label className="mt-xs flex cursor-pointer items-center justify-between rounded-md px-sm py-xs font-sans text-body-sm text-on-dark-soft hover:bg-white/10">
+            <span>Shield from throws</span>
+            <input
+              type="checkbox"
+              data-testid="opt-out"
+              checked={optedOut}
+              onChange={(e) => setOptOut(e.target.checked)}
+              className="h-4 w-4 cursor-pointer"
+              style={{ accentColor: 'var(--color-ember)' }}
+            />
+          </label>
         </div>
       )}
     </div>

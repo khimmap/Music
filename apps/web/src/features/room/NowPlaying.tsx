@@ -1,11 +1,48 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRoom } from './RoomProvider';
+import { BurnTransition } from '@/effects/BurnTransition';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
-/** The hero: player frame (large radius, 1px light border, colored shadow) with
- * title, artist, and "picked by" below. */
+const SCRAMBLE = '▚▞░▒▓/\\<>|=+';
+
+/** Decode effect: scrambles characters settling into the real title on change.
+ * (EB Garamond has no variable-weight axis, so the weight-transition part of
+ * the brief is intentionally skipped.) */
+function useDecoded(target: string): string {
+  const reduced = useReducedMotion();
+  const [out, setOut] = useState(target);
+  useEffect(() => {
+    if (reduced || !target) {
+      setOut(target);
+      return;
+    }
+    let frame = 0;
+    const total = 14;
+    const id = window.setInterval(() => {
+      frame += 1;
+      const reveal = Math.floor((frame / total) * target.length);
+      let s = '';
+      for (let i = 0; i < target.length; i += 1) {
+        const ch = target[i] ?? '';
+        s += i < reveal || ch === ' ' ? ch : SCRAMBLE[Math.floor(Math.random() * SCRAMBLE.length)];
+      }
+      setOut(s);
+      if (frame >= total) {
+        setOut(target);
+        window.clearInterval(id);
+      }
+    }, 40);
+    return () => window.clearInterval(id);
+  }, [target, reduced]);
+  return out;
+}
+
 export function NowPlaying() {
   const { current, palette, registerPlayerMount } = useRoom();
+  const title = current?.title ?? 'Paste a link to begin';
+  const decoded = useDecoded(title);
 
   return (
     <section className="flex w-full flex-col items-center gap-md">
@@ -23,6 +60,7 @@ export function NowPlaying() {
             Nothing playing
           </div>
         )}
+        <BurnTransition />
       </div>
 
       <div className="max-w-[880px] text-center">
@@ -31,7 +69,7 @@ export function NowPlaying() {
           className="font-display text-display-xl leading-none tracking-tight text-on-dark md:text-display-mega"
           style={{ textWrap: 'balance' }}
         >
-          {current?.title ?? 'Paste a link to begin'}
+          {decoded}
         </h1>
         {current && (
           <p className="mt-sm font-sans text-title-sm text-on-dark-soft">

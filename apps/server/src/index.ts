@@ -2,19 +2,25 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { Server } from 'socket.io';
 import {
   SocketEvents,
+  THROW_COOLDOWN_MS,
   parseYouTubeId,
   type ChatMessage,
   type ChatSendPayload,
+  type CursorPayload,
   type PlaybackAction,
   type PlaybackSeekPayload,
   type QueueAddPayload,
   type ReactionSendPayload,
   type RoomJoinPayload,
+  type ThrowPayload,
+  type ThrowResult,
+  type TypingPayload,
 } from '@ember/shared';
 import { serverConfig } from './config';
 import { getPalette } from './palette';
 import {
   addMember,
+  canTarget,
   createRoom,
   enqueue,
   getRoom,
@@ -25,8 +31,10 @@ import {
   removeMember,
   reportEnded,
   seek,
+  setOptOut,
   toSnapshot,
   toSyncPayload,
+  voteSkip,
 } from './rooms';
 
 // --- HTTP server (health, room creation) ----------------------------------
@@ -84,6 +92,7 @@ interface Session {
   name: string;
 }
 const sessions = new Map<string, Session>();
+const lastThrow = new Map<string, number>();
 
 // In e2e mode we skip the oEmbed network call so tests stay fast and hermetic.
 const E2E = process.env.E2E_STUB_PLAYER === '1';
@@ -173,6 +182,78 @@ io.on(SocketEvents.Connection, (socket) => {
       kind: String(payload?.kind ?? ''),
       at: Date.now(),
     });
+  });
+
+  socket.on(SocketEvents.ChatTyping, (payload: TypingPayload) => {
+    const session = sessions.get(socket.id);
+    if (!session) return;
+    socket.to(session.roomId).emit(SocketEvents.ChatTyping, {
+      id: socket.id,
+      typing: Boolean(payload?.typing),
+    });
+  });
+
+  socket.on(SocketEvents.CursorMove, (payload: CursorPayload) => {
+    const session = sessions.get(socket.id);
+    if (!session) return;
+    socket.to(session.roomId).emit(SocketEvents.CursorMove, {
+      id: socket.id,
+      x: payload.x,
+      y: payload.y,
+    });
+  });
+
+  socket.on(SocketEvents.MemberOptOut, (payload: { optOut: boolean }) => {
+    const session = sessions.get(socket.id);
+    const room = session && getRoom(session.roomId);
+    if (!room) return;
+    setOptOut(room, socket.id, Boolean(payload?.optOut));
+    emitRoomState(room.id);
+  });
+
+  socket.on(
+    SocketEvents.InteractionThrow,
+    (payload: ThrowPayload, ack?: (result: ThrowResult) => void) => {
+      const session = sessions.get(socket.id);
+      const room = session && getRoom(session.roomId);
+      if (!room) {
+        ack?.({ ok: false, reason: 'invalid' });
+        return;
+      }
+      const now = Date.now();
+      if (now - (lastThrow.get(socket.id) ?? 0) < THROW_COOLDOWN_MS) {
+        ack?.({ ok: false, reason: 'cooldown' });
+        return;
+      }
+      if (!canTarget(room, payload.to)) {
+        ack?.({ ok: false, reason: 'opted-out' });
+        return;
+      }
+      lastThrow.set(socket.id, now);
+      ack?.({ ok: true });
+      io.to(room.id).emit(SocketEvents.InteractionThrow, {
+        from: socket.id,
+        to: payload.to,
+        kind: payload.kind ?? 'tomato',
+        at: now,
+      });
+    },
+  );
+
+  socket.on(SocketEvents.VoteSkip, () => {
+    const session = sessions.get(socket.id);
+    const room = session && getRoom(session.roomId);
+    if (!room) return;
+    const outcome = voteSkip(room, socket.id);
+    io.to(room.id).emit(SocketEvents.VoteState, {
+      videoId: outcome.videoId,
+      votes: outcome.votes,
+      needed: outcome.needed,
+    });
+    if (outcome.passed) {
+      emitRoomState(room.id);
+      emitSync(room.id, 'next', null);
+    }
   });
 
   socket.on(SocketEvents.QueueAdd, async (payload: QueueAddPayload) => {

@@ -19,8 +19,24 @@ export const SocketEvents = {
   /** Chat. */
   ChatSend: 'chat:send',
 
-  /** Reactions (buttons wired in a later part). */
+  /** Reactions. */
   Reaction: 'reaction:send',
+
+  /** Typing indicator. */
+  ChatTyping: 'chat:typing',
+
+  /** Live cursors (client -> server {x,y}; server -> clients {id,x,y}). */
+  CursorMove: 'cursor:move',
+
+  /** Throw a prop at a listener (server validates cooldown + opt-out). */
+  InteractionThrow: 'interaction:throw',
+
+  /** Opt out of being targeted by throws. */
+  MemberOptOut: 'member:optout',
+
+  /** Skip-vote (client -> server); server broadcasts VoteState. */
+  VoteSkip: 'vote:skip',
+  VoteState: 'vote:state',
 
   /** Queue. */
   QueueAdd: 'queue:add',
