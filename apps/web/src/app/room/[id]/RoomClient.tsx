@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { RoomProvider, useRoom } from '@/stores/RoomProvider';
 import { RoomOverlay } from '@/components/room/RoomOverlay';
 import { AutoplayGate } from '@/components/room/AutoplayGate';
@@ -50,7 +50,20 @@ function E2EStage({ registerMount }: { registerMount: (el: HTMLElement | null) =
 
 function RoomStage({ lite, reducedMotion }: { lite: boolean; reducedMotion: boolean }) {
   const { registerScreenMount } = useRoom();
+  const [hostEl, setHostEl] = useState<HTMLDivElement | null>(null);
   const e2e = isStubPlayer();
+
+  // The YouTube iframe host: registered as the player mount and positioned over
+  // the 3D screen by <ScreenProjector> (styles set imperatively, so no inline
+  // style prop here that React would reset on re-render).
+  const setHost = useCallback(
+    (el: HTMLDivElement | null) => {
+      setHostEl(el);
+      registerScreenMount(el);
+    },
+    [registerScreenMount],
+  );
+
   return (
     <main
       className="relative h-[100dvh] w-full overflow-hidden bg-canvas-deep text-on-dark"
@@ -61,7 +74,14 @@ function RoomStage({ lite, reducedMotion }: { lite: boolean; reducedMotion: bool
       {e2e ? (
         <E2EStage registerMount={registerScreenMount} />
       ) : (
-        <RoomCanvas lite={lite} reducedMotion={reducedMotion} registerMount={registerScreenMount} />
+        <>
+          <RoomCanvas lite={lite} reducedMotion={reducedMotion} screenHostEl={hostEl} />
+          <div
+            ref={setHost}
+            data-testid="screen-mount"
+            className="pointer-events-auto absolute overflow-hidden rounded-sm bg-black"
+          />
+        </>
       )}
       <RoomOverlay />
       <AutoplayGate />

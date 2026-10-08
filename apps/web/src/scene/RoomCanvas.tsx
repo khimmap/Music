@@ -8,7 +8,8 @@ import { RoomScene } from './room/RoomScene';
 interface RoomCanvasProps {
   lite: boolean;
   reducedMotion: boolean;
-  registerMount: (el: HTMLElement | null) => void;
+  /** DOM host for the YouTube iframe, aligned over the 3D screen each frame. */
+  screenHostEl: HTMLElement | null;
 }
 
 /**
@@ -16,7 +17,7 @@ interface RoomCanvasProps {
  * Lite mode lowers DPR, drops shadows, and thins out lights for low-end devices.
  * Memoized so the scene is not reconciled on every playback-position tick.
  */
-function RoomCanvas({ lite, reducedMotion, registerMount }: RoomCanvasProps) {
+function RoomCanvas({ lite, reducedMotion, screenHostEl }: RoomCanvasProps) {
   return (
     <Canvas
       shadows={!lite}
@@ -29,7 +30,7 @@ function RoomCanvas({ lite, reducedMotion, registerMount }: RoomCanvasProps) {
       <fog attach="fog" args={['#07060a', 11, 26]} />
       <ambientLight intensity={lite ? 0.5 : 0.3} color="#2a2f3a" />
       {!lite && <hemisphereLight intensity={0.14} color="#30364a" groundColor="#140b05" />}
-      <RoomScene registerMount={registerMount} lite={lite} reducedMotion={reducedMotion} />
+      <RoomScene screenHostEl={screenHostEl} lite={lite} reducedMotion={reducedMotion} />
       <ParallaxRig reducedMotion={reducedMotion} />
     </Canvas>
   );

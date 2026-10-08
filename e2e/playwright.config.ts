@@ -40,7 +40,8 @@ export default defineConfig({
       url: WEB_URL,
       reuseExistingServer: false,
       timeout: 240_000,
-      env: { NEXT_PUBLIC_E2E_STUB_PLAYER: '1' },
+      // Direct server connection in tests (bypass the same-origin proxy).
+      env: { NEXT_PUBLIC_E2E_STUB_PLAYER: '1', NEXT_PUBLIC_SOCKET_URL: 'http://localhost:4000' },
     },
   ],
 });

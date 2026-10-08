@@ -27,8 +27,12 @@ import {
 
 // --- HTTP server (health, room creation) ----------------------------------
 
-function setCors(res: ServerResponse): void {
-  res.setHeader('Access-Control-Allow-Origin', serverConfig.clientOrigin);
+function setCors(req: IncomingMessage, res: ServerResponse): void {
+  // Reflect the request origin so the app works both locally and when shared
+  // via a forwarded port / tunnel (falls back to the configured client origin).
+  const origin = req.headers.origin ?? serverConfig.clientOrigin;
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
@@ -39,7 +43,7 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
 }
 
 const httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
-  setCors(res);
+  setCors(req, res);
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -66,7 +70,9 @@ const httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
 // --- Socket.io (realtime room + playback sync) -----------------------------
 
 const io = new Server(httpServer, {
-  cors: { origin: serverConfig.clientOrigin, methods: ['GET', 'POST'] },
+  // Reflect the request origin so the app works both directly and behind a
+  // same-origin proxy / forwarded port.
+  cors: { origin: true, methods: ['GET', 'POST'] },
 });
 
 interface Session {

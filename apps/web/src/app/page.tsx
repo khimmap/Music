@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { SOCKET_URL } from '@/lib/socket';
+import { getServerBase } from '@/lib/socket';
 
 export default function HomePage() {
   const router = useRouter();
@@ -13,7 +13,7 @@ export default function HomePage() {
     setCreating(true);
     setError(null);
     try {
-      const res = await fetch(`${SOCKET_URL}/rooms`, { method: 'POST' });
+      const res = await fetch(`${getServerBase()}/rooms`, { method: 'POST' });
       if (!res.ok) throw new Error('create failed');
       const data = (await res.json()) as { id: string };
       // Preserve any query flags (e.g. ?e2e=1) when entering the room.
