@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ParallaxRig } from './camera/ParallaxRig';
 import { RoomScene } from './room/RoomScene';
@@ -13,8 +14,9 @@ interface RoomCanvasProps {
 /**
  * The 3D room canvas. Client-only (loaded via next/dynamic with ssr:false).
  * Lite mode lowers DPR, drops shadows, and thins out lights for low-end devices.
+ * Memoized so the scene is not reconciled on every playback-position tick.
  */
-export default function RoomCanvas({ lite, reducedMotion, registerMount }: RoomCanvasProps) {
+function RoomCanvas({ lite, reducedMotion, registerMount }: RoomCanvasProps) {
   return (
     <Canvas
       shadows={!lite}
@@ -32,3 +34,5 @@ export default function RoomCanvas({ lite, reducedMotion, registerMount }: RoomC
     </Canvas>
   );
 }
+
+export default memo(RoomCanvas);

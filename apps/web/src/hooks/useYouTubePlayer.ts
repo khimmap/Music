@@ -144,26 +144,28 @@ export function useYouTubePlayer({ mountEl, onEnded }: Options): {
               fs: 0,
             },
             events: {
+              // The player's methods (loadVideoById, etc.) only exist after
+              // onReady — expose controls here, not before.
               onReady: () => {
-                if (!destroyed) setReady(true);
+                if (destroyed || !player) return;
+                setControls({
+                  load(id, startSeconds, autoplay) {
+                    if (!player) return;
+                    if (autoplay) player.loadVideoById({ videoId: id, startSeconds });
+                    else player.cueVideoById({ videoId: id, startSeconds });
+                  },
+                  play: () => player?.playVideo(),
+                  pause: () => player?.pauseVideo(),
+                  seek: (seconds) => player?.seekTo(seconds, true),
+                  getTime: () => player?.getCurrentTime?.() ?? 0,
+                  getDuration: () => player?.getDuration?.() ?? 0,
+                });
+                setReady(true);
               },
               onStateChange: (event: YT.OnStateChangeEvent) => {
                 if (event.data === window.YT?.PlayerState.ENDED) onEndedRef.current();
               },
             },
-          });
-
-          setControls({
-            load(id, startSeconds, autoplay) {
-              if (!player) return;
-              if (autoplay) player.loadVideoById({ videoId: id, startSeconds });
-              else player.cueVideoById({ videoId: id, startSeconds });
-            },
-            play: () => player?.playVideo(),
-            pause: () => player?.pauseVideo(),
-            seek: (seconds) => player?.seekTo(seconds, true),
-            getTime: () => player?.getCurrentTime?.() ?? 0,
-            getDuration: () => player?.getDuration?.() ?? 0,
           });
         })
         .catch(() => {
