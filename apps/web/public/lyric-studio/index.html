@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinematic Studio Pro - 20+ Effects</title>
+    
+    <!-- Import Font Tiếng Việt -->
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,700;0,800;1,500;1,700&family=Bungee&family=Lora:ital,wght@0,500;0,600;1,500;1,600&family=Merriweather:ital,wght@0,700;1,700&family=Noto+Serif:ital,wght@0,600;1,600&family=Roboto+Mono:wght@400;500&family=Sora:wght@400;500;600;700;800&family=Unbounded:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Import GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; background: #050505; color: #fff; font-family: sans-serif; overflow: hidden; }
+        
+        /* Màn hình 1: Giao diện Cài đặt (UI Import) */
+        #setup-screen {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            z-index: 10; transition: opacity 1s;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05); padding: 30px; border-radius: 15px;
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
+            width: 90%; max-width: 600px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        textarea {
+            width: 100%; height: 150px; margin: 15px 0; padding: 10px; background: rgba(0,0,0,0.3);
+            color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-family: monospace;
+        }
+        input[type="file"] { margin-bottom: 20px; }
+        button {
+            padding: 12px 30px; background: #ff4757; color: white; border: none;
+            border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s;
+        }
+        button:hover { background: #ff6b81; transform: scale(1.05); }
+
+        /* Màn hình 2: Nơi chữ chạy (Player) */
+        #player-screen {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: none; background: radial-gradient(circle at var(--bg-x) var(--bg-y), var(--scene-glow), transparent 38%), linear-gradient(135deg, var(--scene-bg), #050505 72%); align-items: center; justify-content: center; overflow: hidden;
+            --scene-accent: #ff6b6b; --scene-secondary: #ffd166; --scene-glow: rgba(255, 107, 107, 0.4); --scene-bg: #181321; --bg-x: 26%; --bg-y: 30%; --orb-scale: 1; --beat-scale: 1; --beat-glow: 0.14;
+        }
+        #visualizer-canvas { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; pointer-events: none; mix-blend-mode: screen; opacity: 0.42; }
+        #player-screen::before, #player-screen::after {
+            content: ''; position: absolute; pointer-events: none; border-radius: 50%; filter: blur(8px);
+            transition: background 1.2s ease, transform 1.6s ease;
+            transform: scale(calc(var(--orb-scale) * var(--beat-scale)));
+        }
+        #player-screen::before {
+            width: 58vw; height: 58vw; top: -34%; left: -18%;
+            background: radial-gradient(circle, var(--scene-glow), transparent 68%);
+        }
+        #player-screen::after {
+            width: 52vw; height: 52vw; right: -20%; bottom: -34%;
+            background: radial-gradient(circle, var(--scene-secondary), transparent 68%); opacity: 0.16;
+        }
+        .ambient-layer { position: absolute; z-index: 1; pointer-events: none; }
+        .ambient-orbit { width: 42vmax; height: 42vmax; border: 1px solid color-mix(in srgb, var(--scene-accent), transparent 72%); border-radius: 50%; opacity: 0.32; }
+        .ambient-orbit::before, .ambient-orbit::after { content: ''; position: absolute; inset: 12%; border: inherit; border-radius: inherit; transform: rotate(58deg) scaleX(0.42); }
+        .ambient-orbit::after { inset: 24%; transform: rotate(-34deg) scaleX(0.68); }
+        .orbit-one { top: -24%; right: -12%; animation: orbitSpin 20s linear infinite; }
+        .orbit-two { bottom: -28%; left: -14%; width: 34vmax; height: 34vmax; opacity: 0.22; animation: orbitSpinReverse 26s linear infinite; }
+        .ambient-beam { width: 150vw; height: 2px; left: -25%; top: 46%; background: linear-gradient(90deg, transparent, var(--scene-secondary), transparent); opacity: 0.28; filter: blur(2px); transform: rotate(-18deg); animation: beamSweep 8s ease-in-out infinite; }
+        .ambient-grain { inset: 0; opacity: 0.08; background-image: radial-gradient(rgba(255,255,255,0.8) 0.7px, transparent 0.7px); background-size: 5px 5px; mix-blend-mode: soft-light; animation: grainShift 0.7s steps(2) infinite; }
+        @keyframes orbitSpin { to { transform: rotate(360deg); } }
+        @keyframes orbitSpinReverse { to { transform: rotate(-360deg); } }
+        @keyframes beamSweep { 0%, 100% { translate: -12% -40px; opacity: 0; } 45% { translate: 8% 40px; opacity: 0.34; } }
+        @keyframes grainShift { 0% { background-position: 0 0; } 25% { background-position: 7px -4px; } 50% { background-position: -5px 8px; } 75% { background-position: 8px 4px; } }
+
+        .player-controls {
+            position: absolute; z-index: 20; left: 50%; bottom: 24px; transform: translateX(-50%);
+            display: grid; grid-template-columns: auto minmax(180px, 1fr) auto auto; align-items: center;
+            gap: 14px; width: min(760px, calc(100% - 32px)); padding: 12px 16px;
+            background: rgba(12, 12, 18, 0.72); border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 16px; backdrop-filter: blur(16px); box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+        }
+        .player-controls button {
+            width: 42px; height: 42px; padding: 0; border-radius: 50%; background: rgba(255,255,255,0.12);
+            font-size: 17px; line-height: 1;
+        }
+        .player-controls button:hover { background: #ff4757; transform: scale(1.06); }
+        .timeline-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .time-label { min-width: 42px; color: rgba(255,255,255,0.72); font: 12px monospace; text-align: center; }
+        #timeline, #volume-control { accent-color: #ff4757; cursor: pointer; }
+        #timeline { width: 100%; }
+        #volume-control { width: 74px; }
+        @media (max-width: 600px) {
+            .player-controls { grid-template-columns: auto 1fr auto; gap: 9px; bottom: 14px; padding: 10px; }
+            .timeline-wrap { grid-column: 1 / -1; grid-row: 2; }
+            #volume-control { width: 58px; }
+            .font-serif, .font-modern { font-size: 2.2rem; }
+            .font-script, .font-hand { font-size: 3.5rem; }
+            .font-display { font-size: 3.8rem; }
+            .font-editorial { font-size: 3rem; }
+            .font-mono { font-size: 1rem; letter-spacing: 2px; }
+            .font-condensed { font-size: 3.4rem; letter-spacing: 4px; }
+            .font-rounded, .font-italic { font-size: 2.8rem; }
+            .font-stamp { font-size: 1rem; letter-spacing: 1px; }
+            .font-sora { font-size: 2rem; }
+            .font-anton { font-size: 3.2rem; }
+            .font-bungee { font-size: 1.5rem; }
+            .font-lora, .font-merriweather { font-size: 2.5rem; }
+            .font-unbounded { font-size: 1.2rem; }
+            .treatment-block { box-shadow: 5px 5px 0 var(--line-secondary); }
+        }
+        
+        /* Font Styles */
+        .lyric-line { position: relative; max-width: 86vw; overflow: visible; padding: 0.12em 0.08em; color: var(--line-color, #fff); text-wrap: balance; line-height: 1.08; text-shadow: 0 8px 32px var(--scene-glow); }
+        .font-serif { font-family: 'Noto Serif', Georgia, serif; text-transform: uppercase; font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: 2px; }
+        .font-script { font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif; font-size: clamp(2.8rem, 7vw, 4.8rem); font-style: italic; font-weight: 500; text-transform: lowercase; }
+        .font-display { font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif; font-size: clamp(2.8rem, 8vw, 5.2rem); font-weight: 800; letter-spacing: 5px; text-transform: uppercase; }
+        .font-modern { font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif; font-size: clamp(1.8rem, 5vw, 3.2rem); font-weight: 700; letter-spacing: -1px; }
+        .font-editorial { font-family: 'Noto Serif', Georgia, serif; font-size: clamp(2.4rem, 6vw, 4.4rem); font-style: italic; }
+        .font-mono { font-family: 'Roboto Mono', 'Cascadia Mono', monospace; font-size: clamp(1rem, 2.5vw, 1.45rem); letter-spacing: 5px; text-transform: uppercase; }
+        .font-hand { font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif; font-size: clamp(2.8rem, 7vw, 4.8rem); font-style: italic; font-weight: 700; }
+        .font-condensed { font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif; font-size: clamp(2.6rem, 7vw, 4.8rem); font-weight: 800; letter-spacing: 9px; text-transform: uppercase; }
+        .font-rounded { font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif; font-size: clamp(2.2rem, 5.5vw, 3.8rem); font-weight: 500; letter-spacing: 1px; }
+        .font-stamp { font-family: 'Roboto Mono', 'Cascadia Mono', monospace; font-size: clamp(1.2rem, 3vw, 2.2rem); font-weight: 500; letter-spacing: 3px; text-transform: uppercase; }
+        .font-italic { font-family: 'Noto Serif', Georgia, serif; font-size: clamp(2.8rem, 6vw, 4.8rem); font-style: italic; font-weight: 600; }
+        .font-sora { font-family: 'Sora', 'Be Vietnam Pro', 'Segoe UI', sans-serif; font-size: clamp(2.2rem, 5.5vw, 4rem); font-weight: 700; letter-spacing: -1.5px; }
+        .font-anton { font-family: 'Anton', 'Arial Narrow', sans-serif; font-size: clamp(3rem, 8vw, 6rem); letter-spacing: 2px; line-height: 0.92; text-transform: uppercase; }
+        .font-bungee { font-family: 'Bungee', 'Be Vietnam Pro', sans-serif; font-size: clamp(1.8rem, 4.5vw, 3.5rem); letter-spacing: 1px; line-height: 1.05; }
+        .font-lora { font-family: 'Lora', Georgia, serif; font-size: clamp(2.3rem, 5.5vw, 4.3rem); font-style: italic; font-weight: 600; line-height: 1.02; }
+        .font-merriweather { font-family: 'Merriweather', Georgia, serif; font-size: clamp(2rem, 5vw, 3.8rem); font-weight: 700; line-height: 1.08; }
+        .font-unbounded { font-family: 'Unbounded', 'Be Vietnam Pro', sans-serif; font-size: clamp(1.5rem, 4vw, 3rem); font-weight: 500; letter-spacing: 1px; line-height: 1.15; }
+        .treatment-gradient { background: linear-gradient(110deg, var(--line-color), var(--line-secondary), var(--line-color)); background-size: 220% auto; -webkit-background-clip: text; background-clip: text; color: transparent; animation: textGradient 4s ease-in-out infinite; }
+        .treatment-outline { color: transparent; -webkit-text-stroke: 1.5px var(--line-color); text-shadow: 5px 5px 0 color-mix(in srgb, var(--line-secondary), transparent 58%); }
+        .treatment-glow { text-shadow: 0 0 8px var(--line-color), 0 0 24px var(--line-color), 0 10px 32px var(--scene-glow); }
+        .treatment-shadow { text-shadow: 10px 12px 0 color-mix(in srgb, var(--line-secondary), transparent 35%), 0 16px 28px rgba(0,0,0,0.5); }
+        .treatment-block { padding: 0.16em 0.2em; color: var(--scene-bg); background: var(--line-color); box-shadow: 10px 10px 0 var(--line-secondary); transform: rotate(-2deg); }
+        .treatment-hollow { color: transparent; -webkit-text-stroke: 2px var(--line-secondary); text-shadow: 0 0 18px var(--line-color); }
+        .treatment-clean { text-shadow: none; }
+        .treatment-duotone { color: var(--line-color); text-shadow: 0.08em 0 var(--line-secondary), 0.16em 0 color-mix(in srgb, var(--line-color), transparent 65%); }
+        .lyric-word { display: inline-block; transition: color 0.3s ease; }
+        .treatment-gradient .lyric-word { background: linear-gradient(110deg, var(--line-color), var(--line-secondary), var(--line-color)); background-size: 220% auto; -webkit-background-clip: text; background-clip: text; color: transparent !important; }
+        .treatment-outline .lyric-word { color: transparent !important; -webkit-text-stroke: 1.5px var(--line-color); }
+        .treatment-hollow .lyric-word { color: transparent !important; -webkit-text-stroke: 2px var(--line-secondary); }
+        .treatment-block .lyric-word { color: var(--scene-bg) !important; }
+        @keyframes textGradient { 0%, 100% { background-position: 0% center; } 50% { background-position: 100% center; } }
+
+        /* Layouts */
+        .layout-container { position: absolute; z-index: 2; display: flex; width: 90%; height: 75%; padding: 20px; gap: clamp(18px, 4vh, 48px); }
+        .layout-centered { flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .layout-centered .lyric-line, .layout-center-wide .lyric-line, .layout-top-wide .lyric-line, .layout-bottom-wide .lyric-line { flex: 0 0 auto; }
+        .layout-diagonal-left { flex-direction: column; align-items: flex-start; justify-content: space-between; }
+        .layout-diagonal-left .part-2 { align-self: flex-end; }
+        .layout-diagonal-right { flex-direction: column; align-items: flex-end; justify-content: space-between; }
+        .layout-diagonal-right .part-2 { align-self: flex-start; }
+        .layout-upper-left { top: 8%; left: 5%; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 16px; }
+        .layout-upper-right { top: 8%; right: 5%; flex-direction: column; align-items: flex-end; justify-content: flex-start; gap: 16px; text-align: right; }
+        .layout-lower-left { bottom: 12%; left: 5%; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 16px; }
+        .layout-lower-right { right: 5%; bottom: 12%; flex-direction: column; align-items: flex-end; justify-content: flex-end; gap: 16px; text-align: right; }
+        .layout-center-wide { top: 12%; left: 5%; width: 90%; height: 60%; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; }
+        .layout-center-wide .lyric-line { max-width: 100%; }
+        .layout-mid-left { top: 28%; left: 4%; width: 70%; height: 42%; flex-direction: column; align-items: flex-start; justify-content: center; gap: 14px; }
+        .layout-mid-right { top: 28%; right: 4%; width: 70%; height: 42%; flex-direction: column; align-items: flex-end; justify-content: center; gap: 14px; text-align: right; }
+        .layout-top-wide { top: 5%; left: 5%; width: 90%; height: 34%; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; }
+        .layout-bottom-wide { bottom: 17%; left: 5%; width: 90%; height: 30%; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; }
+        .layout-corner-top-left { top: 6%; left: 3%; width: 58%; height: 42%; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 12px; }
+        .layout-corner-bottom-right { right: 3%; bottom: 17%; width: 58%; height: 42%; flex-direction: column; align-items: flex-end; justify-content: flex-end; gap: 12px; text-align: right; }
+    </style>
+</head>
+<body>
+
+    <!-- MÀN HÌNH SETUP UI -->
+    <div id="setup-screen">
+        <div class="glass-panel">
+            <h2>🎬 Cinematic Lyric Studio</h2>
+            <p>1. Chọn nhạc từ máy tính (.mp3)</p>
+            <input type="file" id="audio-upload" accept="audio/*">
+            <p>2. Dán lời bài hát định dạng LRC (VD: [00:43.00] Bước từng bước...)</p>
+            <textarea id="lrc-input" placeholder="[00:00.00] Dán lời bài hát vào đây..."></textarea>
+            <br>
+            <button id="start-btn">TẠO LYRIC VIDEO</button>
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH TRÌNH DIỄN (Chỉ hiện khi bấm nút) -->
+    <div id="player-screen">
+        <canvas id="visualizer-canvas" aria-hidden="true"></canvas>
+        <div class="ambient-layer ambient-orbit orbit-one"></div>
+        <div class="ambient-layer ambient-orbit orbit-two"></div>
+        <div class="ambient-layer ambient-beam"></div>
+        <div class="ambient-layer ambient-grain"></div>
+        <div class="player-controls" aria-label="Điều khiển phát nhạc">
+            <button id="play-toggle" type="button" aria-label="Phát nhạc" title="Phát hoặc tạm dừng">▶</button>
+            <div class="timeline-wrap">
+                <span id="current-time" class="time-label">0:00</span>
+                <input id="timeline" type="range" min="0" max="0" value="0" step="0.01" aria-label="Tiến độ bài hát">
+                <span id="duration-time" class="time-label">0:00</span>
+            </div>
+            <label title="Âm lượng">🔊 <input id="volume-control" type="range" min="0" max="1" value="1" step="0.01" aria-label="Âm lượng"></label>
+            <button id="restart-toggle" type="button" aria-label="Phát lại từ đầu" title="Phát lại từ đầu">↺</button>
+        </div>
+    </div>
+    <audio id="audio-player"></audio>
+
+    <!-- Nạp thư viện hiệu ứng GSAP -->
+    <script src="effect.js"></script>
+
+    <script>
+        const setupScreen = document.getElementById('setup-screen');
+        const playerScreen = document.getElementById('player-screen');
+        const audioUpload = document.getElementById('audio-upload');
+        const lrcInput = document.getElementById('lrc-input');
+        const startBtn = document.getElementById('start-btn');
+        const audioPlayer = document.getElementById('audio-player');
+        const playToggle = document.getElementById('play-toggle');
+        const restartToggle = document.getElementById('restart-toggle');
+        const timeline = document.getElementById('timeline');
+        const volumeControl = document.getElementById('volume-control');
+        const currentTimeLabel = document.getElementById('current-time');
+        const durationTimeLabel = document.getElementById('duration-time');
+        const visualizerCanvas = document.getElementById('visualizer-canvas');
+        const visualizerContext = visualizerCanvas.getContext('2d');
+
+        let parsedLyrics = [];
+        let currentActiveIndex = -1;
+        let currentScene = null;
+        let audioContext = null;
+        let analyser = null;
+        let audioSource = null;
+        let frequencyData = null;
+        let waveformData = null;
+        let visualizerFrame = null;
+        let visualizerParticles = [];
+        let smoothedBass = 0;
+        let smoothedMid = 0;
+
+        function resizeVisualizer() {
+            const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+            visualizerCanvas.width = visualizerCanvas.clientWidth * pixelRatio;
+            visualizerCanvas.height = visualizerCanvas.clientHeight * pixelRatio;
+            visualizerContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        }
+
+        function initializeVisualizer() {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return;
+            if (!audioContext) {
+                audioContext = new AudioContextClass();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                audioSource = audioContext.createMediaElementSource(audioPlayer);
+                audioSource.connect(analyser);
+                analyser.connect(audioContext.destination);
+                frequencyData = new Uint8Array(analyser.frequencyBinCount);
+                waveformData = new Uint8Array(analyser.fftSize);
+                visualizerParticles = Array.from({ length: 34 }, () => ({
+                    x: Math.random(), y: Math.random(), size: 0.6 + Math.random() * 2.4,
+                    drift: 0.0003 + Math.random() * 0.0012, phase: Math.random() * Math.PI * 2
+                }));
+                resizeVisualizer();
+                window.addEventListener('resize', resizeVisualizer);
+                renderVisualizer();
+            }
+            if (audioContext.state === 'suspended') audioContext.resume();
+        }
+
+        function renderVisualizer() {
+            if (!analyser || !frequencyData) return;
+            analyser.getByteFrequencyData(frequencyData);
+            analyser.getByteTimeDomainData(waveformData);
+            const canvasWidth = visualizerCanvas.clientWidth;
+            const canvasHeight = visualizerCanvas.clientHeight;
+            const bassEnergy = frequencyData.slice(0, 10).reduce((sum, value) => sum + value, 0) / 10 / 255;
+            const midEnergy = frequencyData.slice(10, 42).reduce((sum, value) => sum + value, 0) / 32 / 255;
+            smoothedBass += (bassEnergy - smoothedBass) * 0.12;
+            smoothedMid += (midEnergy - smoothedMid) * 0.08;
+            visualizerContext.clearRect(0, 0, canvasWidth, canvasHeight);
+            const accentColor = getComputedStyle(playerScreen).getPropertyValue('--scene-accent').trim();
+            const secondaryColor = getComputedStyle(playerScreen).getPropertyValue('--scene-secondary').trim();
+            playerScreen.style.setProperty('--beat-scale', (1 + smoothedBass * 0.045).toFixed(3));
+            playerScreen.style.setProperty('--beat-glow', (0.12 + smoothedBass * 0.2).toFixed(3));
+
+            visualizerParticles.forEach((particle, index) => {
+                particle.y -= particle.drift + smoothedBass * 0.0008;
+                particle.x += Math.sin(performance.now() * 0.0004 + particle.phase) * 0.00012;
+                if (particle.y < -0.04) particle.y = 1.04;
+                const particleSize = particle.size * (1 + smoothedBass * 1.2);
+                const alpha = 0.08 + smoothedMid * 0.2;
+                visualizerContext.beginPath();
+                visualizerContext.fillStyle = index % 3 === 0 ? secondaryColor : accentColor;
+                visualizerContext.globalAlpha = alpha;
+                visualizerContext.arc(particle.x * canvasWidth, particle.y * canvasHeight, particleSize, 0, Math.PI * 2);
+                visualizerContext.fill();
+            });
+
+            visualizerContext.globalAlpha = 0.22 + smoothedMid * 0.28;
+            visualizerContext.lineWidth = 1.5 + smoothedBass * 2;
+            visualizerContext.strokeStyle = accentColor;
+            visualizerContext.beginPath();
+            for (let index = 0; index < waveformData.length; index++) {
+                const x = (index / (waveformData.length - 1)) * canvasWidth;
+                const amplitude = (waveformData[index] - 128) / 128;
+                const y = canvasHeight * 0.72 + amplitude * canvasHeight * (0.055 + smoothedBass * 0.1);
+                if (index === 0) visualizerContext.moveTo(x, y);
+                else visualizerContext.lineTo(x, y);
+            }
+            visualizerContext.stroke();
+            visualizerContext.globalAlpha = 0.12 + smoothedBass * 0.2;
+            visualizerContext.strokeStyle = secondaryColor;
+            visualizerContext.beginPath();
+            for (let index = 0; index < waveformData.length; index++) {
+                const x = (index / (waveformData.length - 1)) * canvasWidth;
+                const amplitude = (waveformData[index] - 128) / 128;
+                const y = canvasHeight * 0.72 - amplitude * canvasHeight * (0.032 + smoothedMid * 0.06);
+                if (index === 0) visualizerContext.moveTo(x, y);
+                else visualizerContext.lineTo(x, y);
+            }
+            visualizerContext.stroke();
+            visualizerContext.globalAlpha = 1;
+            visualizerFrame = requestAnimationFrame(renderVisualizer);
+        }
+
+        function formatTime(seconds) {
+            if (!Number.isFinite(seconds)) return '0:00';
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${remainingSeconds}`;
+        }
+
+        function syncAudioControls() {
+            timeline.max = Number.isFinite(audioPlayer.duration) ? audioPlayer.duration : 0;
+            timeline.value = audioPlayer.currentTime || 0;
+            currentTimeLabel.textContent = formatTime(audioPlayer.currentTime);
+            durationTimeLabel.textContent = formatTime(audioPlayer.duration);
+            playToggle.textContent = audioPlayer.paused ? '▶' : '❚❚';
+            playToggle.setAttribute('aria-label', audioPlayer.paused ? 'Phát nhạc' : 'Tạm dừng');
+        }
+
+        // Hàm phân tích định dạng LRC
+        function parseLRC(lrcText) {
+            const lines = lrcText.split('\n');
+            const result = [];
+            const timeRegex = /\[(\d{2}):(\d{2}\.\d{2,3})\]/;
+
+            lines.forEach(line => {
+                const match = line.match(timeRegex);
+                if (match) {
+                    const minutes = parseInt(match[1]);
+                    const seconds = parseFloat(match[2]);
+                    const time = minutes * 60 + seconds;
+                    const text = line.replace(timeRegex, '').trim();
+                    if (text) result.push({ time, text });
+                }
+            });
+            return result;
+        }
+
+        function splitLyric(text) {
+            const normalizedText = text.replace(/\s+/g, ' ').trim();
+            const punctuationParts = normalizedText.match(/[^,，;；:：!?！？。…]+[,，;；:：!?！？。…]*/g)
+                ?.map(part => part.trim()).filter(Boolean) || [];
+
+            if (punctuationParts.length > 1) {
+                while (punctuationParts.length > 3) {
+                    let shortestIndex = 0;
+                    for (let index = 1; index < punctuationParts.length - 1; index++) {
+                        if (punctuationParts[index].length < punctuationParts[shortestIndex].length) shortestIndex = index;
+                    }
+                    punctuationParts.splice(shortestIndex, 2, `${punctuationParts[shortestIndex]} ${punctuationParts[shortestIndex + 1]}`);
+                }
+                return punctuationParts;
+            }
+
+            const words = normalizedText.split(' ');
+            const targetParts = words.length >= 11 ? 3 : 2;
+            const chunkSize = Math.ceil(words.length / targetParts);
+            return Array.from({ length: targetParts }, (_, index) => words.slice(index * chunkSize, (index + 1) * chunkSize).join(' ')).filter(Boolean);
+        }
+
+        function colorizeLyric(line, text, palette) {
+            text.split(/(\s+)/).forEach((part, index) => {
+                if (/\s+/.test(part)) {
+                    line.appendChild(document.createTextNode(part));
+                    return;
+                }
+                const word = document.createElement('span');
+                word.className = 'lyric-word';
+                word.textContent = part;
+                word.style.color = index % 3 === 0 ? palette.accent : index % 3 === 1 ? palette.secondary : '#fff';
+                line.appendChild(word);
+            });
+        }
+
+        function fitLyricLine(line) {
+            const maxWidth = Math.min(playerScreen.clientWidth * 0.82, 1100);
+            let fontSize = parseFloat(getComputedStyle(line).fontSize);
+            while (line.scrollWidth > maxWidth && fontSize > 18) {
+                fontSize -= 1;
+                line.style.fontSize = `${fontSize}px`;
+            }
+        }
+
+        function constrainLineEffect(effect, index, lineCount) {
+            if (lineCount < 2 || index === 0) return effect;
+            const movementScale = index === 1 ? 0.46 : 0.32;
+            const constrain = values => {
+                const safeValues = { ...values };
+                ['x', 'y', 'z', 'xPercent', 'yPercent'].forEach(property => {
+                    if (typeof safeValues[property] === 'number') safeValues[property] *= movementScale;
+                });
+                ['rotation', 'rotationX', 'rotationY', 'rotationZ', 'skewX'].forEach(property => {
+                    if (typeof safeValues[property] === 'number') safeValues[property] *= 0.65;
+                });
+                return safeValues;
+            };
+            return { in: constrain(effect.in), out: constrain(effect.out) };
+        }
+
+        // Logic hiển thị chữ từ GSAP và effect.js
+        function showLyricScene(text, duration) {
+            if (currentScene) {
+                currentScene.tl.progress(1);
+                currentScene.el.remove();
+            }
+
+            const chunks = splitLyric(text);
+
+            const container = document.createElement('div');
+            const randomLayout = typeof getRandomLayout === 'function' ? getRandomLayout() : 'layout-centered';
+            container.className = `layout-container ${randomLayout}`;
+            const palette = typeof getRandomPalette === 'function' ? getRandomPalette() : { accent: '#f7e7ce', secondary: '#fff', glow: 'rgba(255,255,255,0.3)', background: '#181321' };
+            playerScreen.style.setProperty('--scene-accent', palette.accent);
+            playerScreen.style.setProperty('--scene-secondary', palette.secondary);
+            playerScreen.style.setProperty('--scene-glow', palette.glow);
+            playerScreen.style.setProperty('--scene-bg', palette.background);
+
+            const lines = chunks.map((chunk, index) => {
+                const line = document.createElement('div');
+                const font = typeof getRandomFont === 'function' ? getRandomFont() : (index % 2 ? 'font-script' : 'font-serif');
+                const treatment = typeof getRandomTreatment === 'function' ? getRandomTreatment() : 'treatment-clean';
+                line.className = `lyric-line ${font} ${treatment}${index ? ` part-${index + 1}` : ''}`;
+                line.style.setProperty('--line-color', index % 2 ? palette.secondary : palette.accent);
+                line.style.setProperty('--line-secondary', index % 2 ? palette.accent : palette.secondary);
+                colorizeLyric(line, chunk, palette);
+                container.appendChild(line);
+                return line;
+            });
+
+            playerScreen.appendChild(container);
+            lines.forEach(fitLyricLine);
+
+            // Bốc thăm hiệu ứng cho từng mảnh chữ.
+            const fallbackEffect = { in: { opacity: 0, y: 20 }, out: { opacity: 0, y: -20 } };
+            const tl = gsap.timeline();
+            const exitAt = Math.max(0.2, duration - 0.8);
+            tl.to(playerScreen, {
+                '--bg-x': `${18 + Math.random() * 64}%`,
+                '--bg-y': `${18 + Math.random() * 54}%`,
+                '--orb-scale': 1.12 + Math.random() * 0.2,
+                duration: Math.min(2.4, Math.max(0.8, duration * 0.55)),
+                ease: 'sine.inOut'
+            }, 0);
+            lines.forEach((line, index) => {
+                const rawEffect = typeof getEffectForDuration === 'function'
+                    ? getEffectForDuration(duration)
+                    : (typeof getRandomEffect === 'function' ? getRandomEffect() : fallbackEffect);
+                const effect = constrainLineEffect(rawEffect, index, lines.length);
+                const entranceAt = Math.min(index * 0.24, Math.max(0, duration * 0.25));
+                tl.fromTo(line, effect.in, { opacity: 1, x: 0, y: 0, scale: 1, scaleX: 1, scaleY: 1, rotation: 0, rotationX: 0, rotationY: 0, skewX: 0, filter: 'blur(0px)', clipPath: 'inset(0 0 0 0)', textShadow: '0 8px 32px var(--scene-glow)', letterSpacing: 'normal', duration: 1.2, ease: 'power2.out' }, entranceAt);
+                const words = line.querySelectorAll('.lyric-word');
+                tl.fromTo(words, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, stagger: 0.025, ease: 'power2.out' }, entranceAt + 0.18);
+                tl.to(line, { ...effect.out, duration: 0.8, ease: 'power2.in' }, exitAt);
+            });
+
+            tl.eventCallback("onComplete", () => container.remove());
+            currentScene = { el: container, tl: tl };
+        }
+
+        // Bắt đầu ứng dụng
+        startBtn.addEventListener('click', () => {
+            const file = audioUpload.files[0];
+            const lrcText = lrcInput.value;
+
+            if (!file || !lrcText.trim()) {
+                alert('Vui lòng chọn file nhạc mp3 và dán lời bài hát định dạng LRC!');
+                return;
+            }
+
+            // Phân tích LRC
+            parsedLyrics = parseLRC(lrcText);
+            
+            // Nạp file nhạc
+            const audioUrl = URL.createObjectURL(file);
+            audioPlayer.src = audioUrl;
+            audioPlayer.load();
+
+            // Chuyển màn hình
+            setupScreen.style.opacity = '0';
+            setTimeout(() => {
+                setupScreen.style.display = 'none';
+                playerScreen.style.display = 'flex';
+                initializeVisualizer();
+                audioPlayer.play();
+            }, 1000);
+        });
+
+        playToggle.addEventListener('click', () => {
+            if (audioPlayer.paused) audioPlayer.play();
+            else audioPlayer.pause();
+        });
+
+        restartToggle.addEventListener('click', () => {
+            audioPlayer.currentTime = 0;
+            currentActiveIndex = -1;
+            audioPlayer.play();
+        });
+
+        timeline.addEventListener('input', () => {
+            audioPlayer.currentTime = Number(timeline.value);
+            syncAudioControls();
+        });
+
+        volumeControl.addEventListener('input', () => {
+            audioPlayer.volume = Number(volumeControl.value);
+        });
+
+        audioPlayer.addEventListener('loadedmetadata', syncAudioControls);
+        audioPlayer.addEventListener('play', syncAudioControls);
+        audioPlayer.addEventListener('pause', syncAudioControls);
+        audioPlayer.addEventListener('timeupdate', syncAudioControls);
+
+        // Bắt sự kiện thời gian nhạc để gọi hiệu ứng
+        audioPlayer.addEventListener('timeupdate', () => {
+            const currentTime = audioPlayer.currentTime;
+            
+            let activeIndex = -1;
+            for (let i = 0; i < parsedLyrics.length; i++) {
+                if (currentTime >= parsedLyrics[i].time) {
+                    activeIndex = i;
+                } else break;
+            }
+
+            if (activeIndex !== -1 && activeIndex !== currentActiveIndex) {
+                currentActiveIndex = activeIndex;
+                
+                // Tính thời gian cho câu hát hiện tại
+                const currentLyric = parsedLyrics[activeIndex];
+                const nextLyric = parsedLyrics[activeIndex + 1];
+                let duration = 4; // Mặc định 4 giây
+                if (nextLyric) {
+                    duration = nextLyric.time - currentLyric.time;
+                    if (duration > 6) duration = 6; // Giới hạn tối đa 6 giây trên màn hình
+                }
+                
+                showLyricScene(currentLyric.text, duration);
+            }
+        });
+    </script>
+</body>
+</html>

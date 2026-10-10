@@ -200,6 +200,14 @@ export function Landing() {
               {creating ? 'Lighting the room…' : 'Create a room'}
             </button>
 
+            <a
+              href="/lyric-studio/index.html"
+              data-testid="lyric-studio"
+              className="l-join-btn inline-flex items-center gap-xs rounded-pill px-base py-xs font-sans text-button transition hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/50"
+            >
+              Open Lyric Studio
+            </a>
+
             <form
               onSubmit={joinRoom}
               data-testid="join-form"

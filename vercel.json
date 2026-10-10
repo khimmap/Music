@@ -1,0 +1,5 @@
+{
+  "buildCommand": "corepack pnpm --filter @ember/web build",
+  "installCommand": "corepack pnpm install --frozen-lockfile",
+  "framework": "nextjs"
+}
